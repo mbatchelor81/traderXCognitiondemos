@@ -57,7 +57,7 @@ def get_matching_people(SearchText: Optional[str] = Query(None),
 
     people = people_service.get_matching_people(SearchText, Take)
     if not people:
-        return None
+        return {"People": []}
 
     return {"People": [p.to_dict() for p in people]}
 
