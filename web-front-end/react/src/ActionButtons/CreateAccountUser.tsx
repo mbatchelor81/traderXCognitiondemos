@@ -62,12 +62,13 @@ export const CreateAccountUser = (
 		let json:PeopleData[];
 		console.log(data.formData)
 			try {
-					const response = await fetchWithTenant(`${Environment.people_service_url}/people/GetMatchingPeople?SearchText=${data.formData.fullName}`);
-					json = await response.json();
-					setMatchingPeople([]);
-					json.forEach((data:any) => {
-						setMatchingPeople((prevData:MatchingPeople[]) => [...prevData, data.fullName])
-					})
+						const response = await fetchWithTenant(`${Environment.people_service_url}/people/GetMatchingPeople?SearchText=${data.formData.fullName}`);
+						const result = await response.json();
+						json = result.People || result;
+						setMatchingPeople([]);
+						json.forEach((data:any) => {
+							setMatchingPeople((prevData:MatchingPeople[]) => [...prevData, data.FullName || data.fullName])
+						})
 			} catch (error) {
 				return error;
 			}
