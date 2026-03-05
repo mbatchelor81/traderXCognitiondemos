@@ -4,12 +4,13 @@ import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { SelectChangeEvent } from '@mui/material';
-import { socket } from '../socket';
+import * as socketModule from '../socket';
 import { GetPositions, GetTrades } from '../hooks';
 import { CreateAccount, CreateAccountUser, CreateTradeButton } from '../ActionButtons';
 import { ColDef } from 'ag-grid-community';
 import { PositionData, TradeData } from './types';
 import { AccountsDropdown } from '../AccountsDropdown';
+import { useTenant } from '../TenantContext';
 
 const PUBLISH='publish';
 const SUBSCRIBE='subscribe';
@@ -18,6 +19,7 @@ const UNSUBSCRIBE='unsubscribe';
 
 
 export const Datatable = () => {
+	const { tenant } = useTenant();
 	const [tradeRowData, setTradeRowData] = useState<TradeData[]>([]);
 	const [tradeColumnDefs, setTradeColumnDefs] = useState<ColDef[]>([]);
 	const [positionRowData, setPositionRowData] = useState<PositionData[]>([]);
@@ -28,17 +30,25 @@ export const Datatable = () => {
 	const positionData = GetPositions(selectedId);
 	const tradeData = GetTrades(selectedId);
 
+	// Reset selection when tenant changes
+	useEffect(() => {
+		setSelectedId(0);
+		setCurrentAccount('');
+		setTradeRowData([]);
+		setPositionRowData([]);
+	}, [tenant]);
+
 	const handleChange = useCallback((event:SelectChangeEvent<any>) => {
-		socket.off(PUBLISH);
+		socketModule.socket.off(PUBLISH);
 		if (selectedId !== 0){
-			socket.emit(UNSUBSCRIBE,`/accounts/${selectedId}/trades`);
-			socket.emit(UNSUBSCRIBE,`/accounts/${selectedId}/positions`);
+			socketModule.socket.emit(UNSUBSCRIBE,`/accounts/${selectedId}/trades`);
+			socketModule.socket.emit(UNSUBSCRIBE,`/accounts/${selectedId}/positions`);
 		}
 		setSelectedId(event.target.value);
 		setCurrentAccount(event.target.value);
-		socket.emit(SUBSCRIBE,`/accounts/${event.target.value}/trades`);
-		socket.emit(SUBSCRIBE,`/accounts/${event.target.value}/positions`);
-		socket.on(PUBLISH, (data:any) => {
+		socketModule.socket.emit(SUBSCRIBE,`/accounts/${event.target.value}/trades`);
+		socketModule.socket.emit(SUBSCRIBE,`/accounts/${event.target.value}/positions`);
+		socketModule.socket.on(PUBLISH, (data:any) => {
 			if (data.topic === `/accounts/${event.target.value}/trades`) {
 				console.log("INCOMING TRADE DATA: ", data);
 				setTradeRowData((current: TradeData[]) => [...current, data.payload]);

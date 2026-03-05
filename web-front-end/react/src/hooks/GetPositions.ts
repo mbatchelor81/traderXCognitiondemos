@@ -1,15 +1,18 @@
 import { SetStateAction, useEffect, useState } from "react";
 import { PositionData } from "../Datatable/types";
 import { Environment } from '../env';
+import { fetchWithTenant } from '../fetchWithTenant';
+import { useTenant } from '../TenantContext';
 
 export const GetPositions = (accountId:number) => {
+	const { tenant } = useTenant();
 	const [positionsData, setPositionsData] = useState<PositionData[]>([]);
 	type data = () => Promise<unknown>;
 	useEffect(() => {
 		let json:SetStateAction<PositionData[]>;
 		const fetchData: data = async () => {
 			try {
-				const response = await fetch(`${Environment.position_service_url}/positions/${accountId}`);
+				const response = await fetchWithTenant(`${Environment.position_service_url}/positions/${accountId}`);
 				if (response.ok) {
 					json = await response.json();
 					setPositionsData(json);
@@ -19,6 +22,6 @@ export const GetPositions = (accountId:number) => {
 			}
 		};
 		fetchData()
-	}, [accountId]);
+	}, [accountId, tenant]);
 	return positionsData;
 }
