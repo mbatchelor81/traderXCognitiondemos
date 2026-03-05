@@ -3,14 +3,10 @@ Tenant injection middleware for TraderX Monolith.
 Injects tenant_id from X-Tenant-ID header, falls back to env var.
 """
 
-import os
-
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 from app.config import *  # noqa: F401,F403 — intentional global config import
-
-CURRENT_TENANT = os.getenv("DEFAULT_TENANT", "acme_corp")
 
 
 class TenantMiddleware(BaseHTTPMiddleware):

@@ -47,7 +47,7 @@ async def subscribe(sid, data):
     """Handle room subscription requests from the frontend."""
     room = data if isinstance(data, str) else data.get("room", "")
     if room:
-        sio.enter_room(sid, room)
+        await sio.enter_room(sid, room)
         logger.info("Client %s subscribed to room: %s", sid, room)
 
 
@@ -56,7 +56,7 @@ async def unsubscribe(sid, data):
     """Handle room unsubscription requests."""
     room = data if isinstance(data, str) else data.get("room", "")
     if room:
-        sio.leave_room(sid, room)
+        await sio.leave_room(sid, room)
         logger.info("Client %s unsubscribed from room: %s", sid, room)
 
 
