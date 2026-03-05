@@ -1,16 +1,25 @@
-// import { Server } from 'socket.io';
-import { io } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 import { Environment } from './env';
-// "undefined" means the URL will be computed from the `window.location` object
+import { getCurrentTenant } from './fetchWithTenant';
+
 const URL = process.env.NODE_ENV === 'production' ? undefined : Environment.trade_feed_url;
 
-//@ts-ignore
-export const socket = io(URL);
+function createSocket(tenant: string): Socket {
+  const socketUrl = URL || '';
+  return io(socketUrl, {
+    query: { tenant },
+    forceNew: true,
+  });
+}
 
-// const io = new Server({
-//   cors: {
-//     origin: "http://localhost:3000"
-//   }
-// });
+export let socket = createSocket(getCurrentTenant());
 
-// io.listen(3000);
+/**
+ * Reconnect the socket with a new tenant.
+ * Disconnects the old socket and creates a new one.
+ */
+export function reconnectSocket(tenant: string): Socket {
+  socket.disconnect();
+  socket = createSocket(tenant);
+  return socket;
+}
