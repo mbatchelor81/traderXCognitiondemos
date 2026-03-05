@@ -327,7 +327,7 @@ async def publish_trade_update(trade: Trade):
     trade_data = trade.to_dict()
 
     try:
-        await sio.emit("trade", trade_data, room=room)
+        await sio.emit("publish", {"topic": room, "payload": trade_data}, room=room)
         logger.info("Published trade update to room %s: trade_id=%d state=%s",
                      room, trade.id, trade.state)
     except Exception as e:
@@ -345,7 +345,7 @@ async def publish_position_update(position: Position):
     position_data = position.to_dict()
 
     try:
-        await sio.emit("position", position_data, room=room)
+        await sio.emit("publish", {"topic": room, "payload": position_data}, room=room)
         logger.info("Published position update to room %s: security=%s qty=%d",
                      room, position.security, position.quantity)
     except Exception as e:

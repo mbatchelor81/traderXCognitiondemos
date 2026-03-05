@@ -4,3 +4,5 @@ sqlalchemy
 python-socketio
 aiohttp
 pydantic
+pytest
+httpx

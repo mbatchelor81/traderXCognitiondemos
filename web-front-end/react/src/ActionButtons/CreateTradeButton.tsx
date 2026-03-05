@@ -3,6 +3,7 @@ import { ChangeEvent, MouseEvent, useCallback, useState } from "react";
 import { style } from "../style";
 import { ActionButtonsProps, Side } from "./types";
 import { Environment } from '../env';
+import { fetchWithTenant } from '../fetchWithTenant';
 
 export const CreateTradeButton = ({accountId}:ActionButtonsProps) => {
 	const [refData, setRefData] = useState<any>([]);
@@ -14,7 +15,7 @@ export const CreateTradeButton = ({accountId}:ActionButtonsProps) => {
 	
 	const handleSubmit = async () => {
 		try {
-			const response = await fetch(`${Environment.trade_service_url}/trade/`, {
+			const response = await fetchWithTenant(`${Environment.trade_service_url}/trade/`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
@@ -45,7 +46,7 @@ export const CreateTradeButton = ({accountId}:ActionButtonsProps) => {
 	const handleOpen = async () => {
 		setOpen(true);
 		try {
-			const response = await fetch(`${Environment.reference_data_url}/stocks`);
+			const response = await fetchWithTenant(`${Environment.reference_data_url}/stocks`);
 			const data = await response.json();
 			setRefData(data)
 		} catch (error) {
