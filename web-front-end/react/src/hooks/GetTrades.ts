@@ -10,6 +10,10 @@ export const GetTrades = (accountId:number) => {
 	type data = () => Promise<unknown>;
 
 	useEffect(() => {
+		if (accountId === 0) {
+			setTradesData([]);
+			return;
+		}
 		let json:SetStateAction<TradeData[]>;
 		const fetchData: data = async () => {
 			try {

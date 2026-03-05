@@ -9,6 +9,10 @@ export const GetPositions = (accountId:number) => {
 	const [positionsData, setPositionsData] = useState<PositionData[]>([]);
 	type data = () => Promise<unknown>;
 	useEffect(() => {
+		if (accountId === 0) {
+			setPositionsData([]);
+			return;
+		}
 		let json:SetStateAction<PositionData[]>;
 		const fetchData: data = async () => {
 			try {
