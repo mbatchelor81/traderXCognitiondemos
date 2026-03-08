@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: traderx-acme-corp
+
+patches:
+  # Patch users-service deployment to set TENANT_ID
+  - target:
+      kind: Deployment
+      name: users-service
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: "acme_corp"
+  # Patch trades-service deployment to set TENANT_ID
+  - target:
+      kind: Deployment
+      name: trades-service
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: "acme_corp"
