@@ -25,6 +25,16 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
     <title>TraderX</title>
+    <script>
+      // Suppress benign ResizeObserver error before react-error-overlay loads
+      window.addEventListener('error', function(e) {
+        if (e.message && e.message.indexOf('ResizeObserver loop') >= 0) {
+          e.stopImmediatePropagation();
+          e.stopPropagation();
+          e.preventDefault();
+        }
+      }, true);
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
