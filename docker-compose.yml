@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  users-service:
+    build:
+      context: ./services/users-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - TENANT_ID=${TENANT_ID:-acme_corp}
+      - APP_PORT=8001
+      - APP_HOST=0.0.0.0
+      - LOG_LEVEL=INFO
+      - TRADES_SERVICE_URL=http://trades-service:8002
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  trades-service:
+    build:
+      context: ./services/trades-service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - TENANT_ID=${TENANT_ID:-acme_corp}
+      - APP_PORT=8002
+      - APP_HOST=0.0.0.0
+      - LOG_LEVEL=INFO
+      - USERS_SERVICE_URL=http://users-service:8001
+    depends_on:
+      - users-service
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
