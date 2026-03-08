@@ -1,135 +1,265 @@
-import { Box, Button,  MenuItem,  Modal, TextField, ToggleButton, ToggleButtonGroup } from "@mui/material"
-import { ChangeEvent, MouseEvent, useCallback, useState } from "react";
-import { style } from "../style";
-import { ActionButtonsProps, Side } from "./types";
+import React, { MouseEvent, useCallback, useState } from 'react';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import TextField from '@mui/material/TextField';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import Autocomplete from '@mui/material/Autocomplete';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+import Alert from '@mui/material/Alert';
+import Snackbar from '@mui/material/Snackbar';
+import CircularProgress from '@mui/material/CircularProgress';
+import CloseIcon from '@mui/icons-material/Close';
+import AddIcon from '@mui/icons-material/Add';
+import Grid from '@mui/material/Grid';
+import { ActionButtonsProps, RefData, Side } from './types';
 import { Environment } from '../env';
 import { fetchWithTenant } from '../fetchWithTenant';
 
-export const CreateTradeButton = ({accountId}:ActionButtonsProps) => {
-	const [refData, setRefData] = useState<any>([]);
-	const tradeId = Math.floor(Math.random() * 1000000);
+export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
+	const [refData, setRefData] = useState<RefData[]>([]);
+	const [open, setOpen] = useState(false);
+	const [loading, setLoading] = useState(false);
+	const [submitting, setSubmitting] = useState(false);
+	const [side, setSide] = useState<Side>(undefined);
+	const [security, setSecurity] = useState<string>('');
+	const [quantity, setQuantity] = useState<string>('');
+	const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+		open: false,
+		message: '',
+		severity: 'success',
+	});
 
-	const delay = (ms:number) => new Promise(
-		resolve => setTimeout(resolve, ms)
-	);
-	
+	const handleOpen = async () => {
+		setOpen(true);
+		setSide(undefined);
+		setSecurity('');
+		setQuantity('');
+		setLoading(true);
+		try {
+			const response = await fetchWithTenant(`${Environment.reference_data_url}/stocks`);
+			const data = await response.json();
+			setRefData(data);
+		} catch (error) {
+			console.error('Failed to load stocks:', error);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleClose = () => {
+		setOpen(false);
+	};
+
 	const handleSubmit = async () => {
+		if (!security || !quantity || !side) return;
+		const tradeId = Math.floor(Math.random() * 1000000);
+		setSubmitting(true);
 		try {
 			const response = await fetchWithTenant(`${Environment.trade_service_url}/trade/`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					id: `TRADE-${tradeId}`,
-					security: security,
-					quantity: quantity,
-					accountId: accountId,
-					side: side,
+					security,
+					quantity: parseInt(quantity),
+					accountId,
+					side,
 				}),
 			});
 			if (response.ok) {
-				setTradeSuccess(true);
-				await delay(2000);
-				setTradeSuccess(false);
+				setSnackbar({ open: true, message: 'Trade created successfully', severity: 'success' });
 				setOpen(false);
-				console.log('success');
-				return;
+			} else {
+				setSnackbar({ open: true, message: 'Failed to create trade', severity: 'error' });
 			}
 		} catch (error) {
-			console.log(error);
-			setError(error);
-			return error;
+			setSnackbar({ open: true, message: 'Error creating trade', severity: 'error' });
+		} finally {
+			setSubmitting(false);
 		}
-	}
-	const [open, setOpen] = useState<boolean>(false);
-	const [error, setError] = useState<any>('');
-  const handleClose = () => setOpen(false);
-	const handleOpen = async () => {
-		setOpen(true);
-		try {
-			const response = await fetchWithTenant(`${Environment.reference_data_url}/stocks`);
-			const data = await response.json();
-			setRefData(data)
-		} catch (error) {
-			return error
-		}
-	}
+	};
 
-	const tickerItem = refData.map((option:any) => (
-		<MenuItem key={option.ticker} value={option.ticker}>
-			{option.ticker}
-		</MenuItem>
-	))
+	const handleToggleChange = useCallback(
+		(_event: MouseEvent<HTMLElement>, newSide: Side) => {
+			setSide(newSide);
+		},
+		[]
+	);
 
-	const [side, setSide] = useState<Side>();
-	const [security, setSecurity] = useState<string>('');
-	const [quantity, setQuantity] = useState<number>(0);
-	const [tradeSuccess, setTradeSuccess] = useState<boolean>(false);
-	
-  const handleToggleChange = useCallback((
-    _event: MouseEvent<HTMLElement>,
-		newSide: Side,
-  ) => {
-    setSide(newSide);
-  }, []);
-
-	const handleSecurityChange = useCallback(
-		(event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-			setSecurity(event.target.value);
-	}, [])
-
-	const handleQuantityChange = useCallback(
-		(event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-			setQuantity(parseInt(event.target.value));
-	}, [])
+	const isFormValid = security && quantity && parseInt(quantity) > 0 && side;
 
 	return (
-		<div className="modal-container">
-			<Button onClick={handleOpen} variant="contained">Create New Trade</Button>
-				<Modal
-					open={open}
-					onClose={handleClose}
-					aria-labelledby="modal-modal-title"
-					aria-describedby="modal-modal-description"
-				>
-				<Box className="modal-components" sx={style}>
-					<div className="form-container">
-						<TextField
-							select
-							label="Security"
-							variant="outlined"
-							style={{width: "8em"}}
-							onChange={handleSecurityChange}
-						>
-							{tickerItem}
-						</TextField>
-						<TextField
-						type="number"
-						style={{width: "6em"}}
-						label="Quantity"
-						onChange={handleQuantityChange}
-						>
+		<>
+			<Button
+				onClick={handleOpen}
+				variant="contained"
+				startIcon={<AddIcon />}
+				size="small"
+				sx={{
+					bgcolor: '#3b82f6',
+					'&:hover': { bgcolor: '#2563eb' },
+				}}
+			>
+				New Trade
+			</Button>
 
-						</TextField>
-						<ToggleButtonGroup
-							color="primary"
-							size="medium"
-							style={{height: "3.5em"}}
-							value={side}
-							exclusive
-							onChange={handleToggleChange}
-							aria-label="tradeSide"
-						>
-							<ToggleButton value="Buy">Buy</ToggleButton>
-							<ToggleButton value="Sell">Sell</ToggleButton>
-						</ToggleButtonGroup>
-						{!tradeSuccess && <div style={{float: 'left'}} className="submit-button-container">
-							<Button variant="contained" color="success" onClick={handleSubmit}>Submit</Button>
-						</div>}
-						{tradeSuccess && <div style={{backgroundColor: "greenyellow", width: "5em"}}> Trade Created!</div>}
-						<span style={{color: "red", width: "5em"}}>{error}</span>
-					</div>
-				</Box>
-				</Modal>
-		</div>
-	)
-}
+			<Dialog
+				open={open}
+				onClose={handleClose}
+				maxWidth="sm"
+				fullWidth
+				PaperProps={{
+					sx: {
+						bgcolor: '#111827',
+						border: '1px solid rgba(255,255,255,0.1)',
+						borderRadius: 2,
+					},
+				}}
+			>
+				<DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
+					<Typography variant="h6" sx={{ fontWeight: 600 }}>
+						Create Trade
+					</Typography>
+					<IconButton onClick={handleClose} size="small" sx={{ color: '#6b7280' }}>
+						<CloseIcon />
+					</IconButton>
+				</DialogTitle>
+
+				<DialogContent sx={{ pt: 2 }}>
+					{loading ? (
+						<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+							<CircularProgress />
+						</Box>
+					) : (
+						<Grid container spacing={2.5} sx={{ mt: 0 }}>
+							<Grid item xs={12}>
+								<Autocomplete
+									options={refData}
+									getOptionLabel={(option: RefData) => `${option.ticker} - ${option.companyName}`}
+									onChange={(_e, value) => setSecurity(value ? value.ticker : '')}
+									renderInput={(params) => (
+										<TextField
+											{...params}
+											label="Security"
+											placeholder="Search ticker or company..."
+											fullWidth
+										/>
+									)}
+									renderOption={(props, option: RefData) => (
+										<Box component="li" {...props}>
+											<Box>
+												<Typography variant="body2" sx={{ fontWeight: 600 }}>
+													{option.ticker}
+												</Typography>
+												<Typography variant="caption" sx={{ color: '#6b7280' }}>
+													{option.companyName}
+												</Typography>
+											</Box>
+										</Box>
+									)}
+								/>
+							</Grid>
+							<Grid item xs={12} sm={6}>
+								<TextField
+									type="number"
+									label="Quantity"
+									value={quantity}
+									onChange={(e) => setQuantity(e.target.value)}
+									fullWidth
+									inputProps={{ min: 1 }}
+								/>
+							</Grid>
+							<Grid item xs={12} sm={6}>
+								<Box>
+									<Typography variant="caption" sx={{ color: '#9ca3af', mb: 1, display: 'block' }}>
+										Side
+									</Typography>
+									<ToggleButtonGroup
+										value={side}
+										exclusive
+										onChange={handleToggleChange}
+										fullWidth
+										size="medium"
+									>
+										<ToggleButton
+											value="Buy"
+											sx={{
+												color: '#10b981',
+												borderColor: 'rgba(255,255,255,0.15)',
+												'&.Mui-selected': {
+													bgcolor: 'rgba(16, 185, 129, 0.15)',
+													color: '#10b981',
+													borderColor: '#10b981',
+													'&:hover': { bgcolor: 'rgba(16, 185, 129, 0.25)' },
+												},
+											}}
+										>
+											Buy
+										</ToggleButton>
+										<ToggleButton
+											value="Sell"
+											sx={{
+												color: '#ef4444',
+												borderColor: 'rgba(255,255,255,0.15)',
+												'&.Mui-selected': {
+													bgcolor: 'rgba(239, 68, 68, 0.15)',
+													color: '#ef4444',
+													borderColor: '#ef4444',
+													'&:hover': { bgcolor: 'rgba(239, 68, 68, 0.25)' },
+												},
+											}}
+										>
+											Sell
+										</ToggleButton>
+									</ToggleButtonGroup>
+								</Box>
+							</Grid>
+						</Grid>
+					)}
+				</DialogContent>
+
+				<DialogActions sx={{ px: 3, pb: 2.5, pt: 1 }}>
+					<Button onClick={handleClose} sx={{ color: '#9ca3af' }}>
+						Cancel
+					</Button>
+					<Button
+						onClick={handleSubmit}
+						variant="contained"
+						disabled={!isFormValid || submitting}
+						sx={{
+							bgcolor: side === 'Buy' ? '#10b981' : side === 'Sell' ? '#ef4444' : '#3b82f6',
+							'&:hover': {
+								bgcolor: side === 'Buy' ? '#059669' : side === 'Sell' ? '#dc2626' : '#2563eb',
+							},
+							minWidth: 120,
+						}}
+					>
+						{submitting ? <CircularProgress size={20} color="inherit" /> : `Submit ${side || ''} Order`}
+					</Button>
+				</DialogActions>
+			</Dialog>
+
+			<Snackbar
+				open={snackbar.open}
+				autoHideDuration={4000}
+				onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+			>
+				<Alert
+					onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+					severity={snackbar.severity}
+					variant="filled"
+					sx={{ width: '100%' }}
+				>
+					{snackbar.message}
+				</Alert>
+			</Snackbar>
+		</>
+	);
+};
