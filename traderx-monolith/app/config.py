@@ -8,17 +8,17 @@ This is an intentional architectural smell — mutable global state shared every
 import os
 
 # =============================================================================
-# Database Configuration
-# =============================================================================
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///traderx.db")
-DATABASE_ECHO = os.getenv("DATABASE_ECHO", "false").lower() == "true"
-
-# =============================================================================
 # Tenant Configuration (single-tenant mode)
 # =============================================================================
 TENANT_ID = os.environ.get("TENANT_ID")
 if not TENANT_ID:
     raise RuntimeError("TENANT_ID environment variable is required.")
+
+# =============================================================================
+# Database Configuration (tenant-specific by default)
+# =============================================================================
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///app_{TENANT_ID}.db")
+DATABASE_ECHO = os.getenv("DATABASE_ECHO", "false").lower() == "true"
 
 # =============================================================================
 # Socket.io Configuration
