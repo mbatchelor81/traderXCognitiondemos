@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: users-service-config
+  namespace: traderx
+data:
+  APP_PORT: "8001"
+  APP_HOST: "0.0.0.0"
+  LOG_LEVEL: "INFO"
+  TRADES_SERVICE_URL: "http://trades-service:8002"

@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trades-service
+  namespace: traderx
+  labels:
+    app: trades-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trades-service
+  template:
+    metadata:
+      labels:
+        app: trades-service
+    spec:
+      containers:
+        - name: trades-service
+          image: traderx-trades-service:latest
+          ports:
+            - containerPort: 8002
+          env:
+            - name: TENANT_ID
+              value: "PLACEHOLDER"
+          envFrom:
+            - configMapRef:
+                name: trades-service-config
+            - secretRef:
+                name: trades-service-secret
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
