@@ -151,6 +151,8 @@ export const CreateAccountUser = ({ accountId }: ActionButtonsProps) => {
 								setUsername(value.logonId);
 							} else if (typeof value === 'string') {
 								setUsername(value);
+							} else {
+								setUsername('');
 							}
 						}}
 						renderInput={(params) => (
