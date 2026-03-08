@@ -4,10 +4,10 @@
 
 | Resource | URL / Value |
 |---|---|
-| **ALB URL** | `http://traderx-demo-alb-1639291.us-east-1.elb.amazonaws.com` |
-| **Frontend (React)** | `http://traderx-demo-alb-1639291.us-east-1.elb.amazonaws.com/` |
-| **Users Service** | `http://traderx-demo-alb-1639291.us-east-1.elb.amazonaws.com/account/` |
-| **Trades Service** | `http://traderx-demo-alb-1639291.us-east-1.elb.amazonaws.com/stocks/` |
+| **ALB URL** | `http://traderx-demo-alb-1128509166.us-east-1.elb.amazonaws.com` |
+| **Frontend (React)** | `http://traderx-demo-alb-1128509166.us-east-1.elb.amazonaws.com/` |
+| **Users Service** | `http://traderx-demo-alb-1128509166.us-east-1.elb.amazonaws.com/account/` |
+| **Trades Service** | `http://traderx-demo-alb-1128509166.us-east-1.elb.amazonaws.com/stocks/` |
 | **AWS Region** | `us-east-1` |
 | **ECS Cluster** | `traderx-acme_corp-demo` |
 | **Tenant ID** | `acme_corp` |
@@ -40,7 +40,7 @@ The React frontend API URLs are configured in `web-front-end/react/src/env.ts`. 
 pip install -r tests/smoke/requirements.txt
 
 # Run against live ALB
-SMOKE_TEST_URL=http://traderx-demo-alb-1639291.us-east-1.elb.amazonaws.com python -m pytest tests/smoke/ -v
+SMOKE_TEST_URL=http://traderx-demo-alb-1128509166.us-east-1.elb.amazonaws.com python -m pytest tests/smoke/ -v
 
 # Run against local Docker Compose
 TENANT_ID=acme_corp docker compose up -d
