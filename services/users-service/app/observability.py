@@ -50,7 +50,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         # Use route template (e.g. /account/{account_id}) instead of raw path
         # to avoid unbounded Prometheus label cardinality
         route = request.scope.get("route")
-        path = route.path if route else request.url.path
+        path = route.path if route else "UNMATCHED"
 
         duration = time.time() - start_time
         status_code = str(response.status_code)
