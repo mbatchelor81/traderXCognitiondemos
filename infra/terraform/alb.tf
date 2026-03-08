@@ -90,7 +90,7 @@ resource "aws_lb_listener_rule" "trades_service" {
 
   condition {
     path_pattern {
-      values = ["/trade*", "/position*", "/reference-data*", "/socket.io*", "/trades-service/*"]
+      values = ["/trade*", "/position*", "/stocks*", "/socket.io*", "/trades-service/*"]
     }
   }
 }
