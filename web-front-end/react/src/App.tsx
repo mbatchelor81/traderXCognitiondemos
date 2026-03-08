@@ -57,6 +57,7 @@ const TenantSelector = () => {
 };
 
 const ConnectionStatus = () => {
+  const { tenant } = useTenant();
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
@@ -64,16 +65,21 @@ const ConnectionStatus = () => {
       setConnected(socketModule.socket.connected);
     };
 
+    const onConnect = () => setConnected(true);
+    const onDisconnect = () => setConnected(false);
+
     checkConnection();
     const interval = setInterval(checkConnection, 2000);
 
-    socketModule.socket.on('connect', () => setConnected(true));
-    socketModule.socket.on('disconnect', () => setConnected(false));
+    socketModule.socket.on('connect', onConnect);
+    socketModule.socket.on('disconnect', onDisconnect);
 
     return () => {
       clearInterval(interval);
+      socketModule.socket.off('connect', onConnect);
+      socketModule.socket.off('disconnect', onDisconnect);
     };
-  }, []);
+  }, [tenant]);
 
   return (
     <Chip

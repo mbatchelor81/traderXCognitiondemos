@@ -150,7 +150,8 @@ export const Datatable = () => {
 			socketModule.socket.emit(UNSUBSCRIBE, `/accounts/${selectedId}/trades`);
 			socketModule.socket.emit(UNSUBSCRIBE, `/accounts/${selectedId}/positions`);
 		}
-		setSelectedId(event.target.value as unknown as number);
+		const numericId = event.target.value ? Number(event.target.value) : 0;
+		setSelectedId(numericId);
 		setCurrentAccount(event.target.value);
 		socketModule.socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/trades`);
 		socketModule.socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/positions`);
