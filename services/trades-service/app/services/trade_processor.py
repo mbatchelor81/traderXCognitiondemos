@@ -53,15 +53,16 @@ def get_socketio_server():
 # Account Validation via HTTP (cross-service call to Users Service)
 # =============================================================================
 
-def validate_account_exists(account_id: int, tenant_id: str) -> bool:
+async def validate_account_exists(account_id: int, tenant_id: str) -> bool:
     """Validate that an account exists by calling the Users Service over HTTP."""
     logger.debug("Validating account %d via Users Service", account_id)
     try:
-        response = httpx.get(
-            f"{USERS_SERVICE_URL}/account/{account_id}",
-            headers={"X-Tenant-ID": tenant_id},
-            timeout=5.0,
-        )
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{USERS_SERVICE_URL}/account/{account_id}",
+                headers={"X-Tenant-ID": tenant_id},
+                timeout=5.0,
+            )
         if response.status_code == 200:
             logger.info("Account %d validated via Users Service", account_id)
             return True
@@ -82,9 +83,9 @@ def validate_security_exists(security: str) -> bool:
     return True
 
 
-def validate_trade_request(db: Session, account_id: int, security: str,
-                           side: str, quantity: int,
-                           tenant_id: str) -> Tuple[bool, str]:
+async def validate_trade_request(db: Session, account_id: int, security: str,
+                                 side: str, quantity: int,
+                                 tenant_id: str) -> Tuple[bool, str]:
     """Comprehensive trade validation combining all checks."""
     if not validate_trade_side(side):
         return False, f"Invalid trade side: {side}. Must be 'Buy' or 'Sell'."
@@ -93,7 +94,7 @@ def validate_trade_request(db: Session, account_id: int, security: str,
         return False, (f"Invalid trade quantity: {quantity}. "
                        f"Must be between {MIN_TRADE_QUANTITY} and {MAX_TRADE_QUANTITY}.")
 
-    if not validate_account_exists(account_id, tenant_id):
+    if not await validate_account_exists(account_id, tenant_id):
         return False, f"Account {account_id} not found for tenant {tenant_id}."
 
     if not validate_security_exists(security):
@@ -223,7 +224,7 @@ async def process_trade(db: Session, account_id: int, security: str,
     start_time = time.time()
 
     # Validate
-    is_valid, error_msg = validate_trade_request(
+    is_valid, error_msg = await validate_trade_request(
         db, account_id, security, side, quantity, tenant_id
     )
     if not is_valid:

@@ -316,18 +316,20 @@ def seed_database():
         logger.info("SEEDING DATABASE")
         logger.info("=" * 60)
 
-        seed_acme_corp(db)
-        seed_globex_inc(db)
-        seed_initech(db)
+        if TENANT_ID == "acme_corp":
+            seed_acme_corp(db)
+        elif TENANT_ID == "globex_inc":
+            seed_globex_inc(db)
+        elif TENANT_ID == "initech":
+            seed_initech(db)
+        else:
+            logger.warning("No seed data available for tenant: %s", TENANT_ID)
 
         db.commit()
 
         logger.info("=" * 60)
         logger.info("DATABASE SEEDING COMPLETE")
-        logger.info("  Tenants: acme_corp, globex_inc, initech")
-        logger.info("  Total accounts: 7")
-        logger.info("  Total trades: 21")
-        logger.info("  Total positions: 19")
+        logger.info("  Tenant: %s", TENANT_ID)
         logger.info("=" * 60)
 
         return True

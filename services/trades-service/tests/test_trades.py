@@ -1,5 +1,6 @@
 """Tests for trade and position operations."""
-from unittest.mock import patch
+import asyncio
+from unittest.mock import patch, AsyncMock
 
 
 def test_list_trades_empty(client):
@@ -18,7 +19,8 @@ def test_list_positions_empty(client):
 
 def test_submit_trade_with_mocked_account_validation(client):
     """Test submitting a trade with mocked account validation (cross-service call)."""
-    with patch("app.services.trade_processor.validate_account_exists", return_value=True):
+    mock_validate = AsyncMock(return_value=True)
+    with patch("app.services.trade_processor.validate_account_exists", mock_validate):
         response = client.post("/trade/", json={
             "accountId": 1,
             "security": "AAPL",
