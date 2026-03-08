@@ -28,7 +28,14 @@ from typing import Dict, List, Optional, Tuple
 from sqlalchemy import func, and_, or_, desc
 from sqlalchemy.orm import Session
 
-from app.config import *  # noqa: F401,F403 — intentional global config import
+from app.config import (
+    TENANT_ID,
+    TENANT_ALLOWED_SIDES,
+    TENANT_AUTO_SETTLE,
+    TENANT_MAX_ACCOUNTS,
+    MIN_TRADE_QUANTITY,
+    MAX_TRADE_QUANTITY,
+)
 from app.database import SessionLocal
 from app.models.account import Account, AccountUser
 from app.models.trade import Trade
@@ -163,7 +170,7 @@ def validate_trade_request(db: Session, account_id: int, security: str,
         return False, error
 
     # Tenant-specific validation rules
-    tenant_sides = TENANT_ALLOWED_SIDES.get(tenant_id, ["Buy", "Sell"])
+    tenant_sides = TENANT_ALLOWED_SIDES
     if side not in tenant_sides:
         error = (f"Trade side '{side}' not allowed for tenant {tenant_id}. "
                  f"Allowed: {tenant_sides}")
@@ -431,7 +438,7 @@ async def process_trade(db: Session, account_id: int, security: str,
     position = update_position(db, account_id, security, quantity_delta, tenant_id)
 
     # Step 5: Check tenant auto-settle config
-    auto_settle = TENANT_AUTO_SETTLE.get(tenant_id, True)
+    auto_settle = TENANT_AUTO_SETTLE
 
     if auto_settle:
         # Transition to Settled
@@ -454,11 +461,6 @@ async def process_trade(db: Session, account_id: int, security: str,
         await publish_trade_and_position(trade, position)
     except Exception as e:
         logger.error("Error publishing Socket.io events: %s", str(e))
-
-    # Step 7: Update runtime stats
-    update_runtime_state("total_trades_processed",
-                         get_runtime_state()["total_trades_processed"] + 1)
-    update_runtime_state("last_trade_timestamp", now_utc().isoformat())
 
     # Log final audit
     elapsed_ms = (time.time() - start_time) * 1000
@@ -673,7 +675,7 @@ def get_tenant_trading_summary(db: Session, tenant_id: str) -> Dict:
 
 def get_max_accounts_for_tenant(tenant_id: str) -> int:
     """Get the maximum number of accounts allowed for a tenant."""
-    return TENANT_MAX_ACCOUNTS.get(tenant_id, 50)
+    return TENANT_MAX_ACCOUNTS
 
 
 def check_tenant_account_limit(db: Session, tenant_id: str) -> bool:
@@ -695,8 +697,8 @@ def check_tenant_account_limit(db: Session, tenant_id: str) -> bool:
 def get_tenant_trade_restrictions(tenant_id: str) -> Dict:
     """Get trade restrictions for a tenant."""
     return {
-        "allowedSides": TENANT_ALLOWED_SIDES.get(tenant_id, ["Buy", "Sell"]),
-        "autoSettle": TENANT_AUTO_SETTLE.get(tenant_id, True),
+        "allowedSides": TENANT_ALLOWED_SIDES,
+        "autoSettle": TENANT_AUTO_SETTLE,
         "maxQuantity": MAX_TRADE_QUANTITY,
         "minQuantity": MIN_TRADE_QUANTITY,
     }

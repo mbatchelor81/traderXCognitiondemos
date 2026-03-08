@@ -1,4 +1,9 @@
 """Shared test fixtures for TraderX monolith tests."""
+import os
+
+# Set TENANT_ID before any app imports
+os.environ.setdefault("TENANT_ID", "acme_corp")
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker

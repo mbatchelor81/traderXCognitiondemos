@@ -7,7 +7,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException
 
-from app.config import *  # noqa: F401,F403 — intentional global config import
+from app.config import TENANT_ID
 from app.utils.helpers import load_stocks_from_csv, find_stock_by_ticker
 
 logger = logging.getLogger(__name__)
