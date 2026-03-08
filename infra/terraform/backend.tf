@@ -1,0 +1,9 @@
+terraform {
+  backend "s3" {
+    bucket         = "traderx-terraform-state-599083837640"
+    key            = "traderx/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "traderx-terraform-locks"
+    encrypt        = true
+  }
+}
