@@ -72,7 +72,7 @@ jobs:
               --cluster $CLUSTER_NAME \
               --service traderx-${SERVICE} \
               --force-new-deployment \
-              --region ${{ env.AWS_REGION }} || true
+              --region ${{ env.AWS_REGION }}
           done
 
       - name: Wait for services to stabilize
@@ -85,7 +85,7 @@ jobs:
               --cluster $CLUSTER_NAME \
               --services traderx-${SERVICE} \
               --query 'services[0].{status:status,running:runningCount,desired:desiredCount}' \
-              --region ${{ env.AWS_REGION }} || true
+              --region ${{ env.AWS_REGION }}
           done
 
   smoke-test:
@@ -113,8 +113,15 @@ jobs:
       - name: Get ALB URL
         id: alb
         run: |
-          cd infra/terraform
-          ALB_URL=$(terraform output -raw alb_url 2>/dev/null || echo "")
+          ALB_URL=$(aws elbv2 describe-load-balancers \
+            --names traderx-demo-alb \
+            --query 'LoadBalancers[0].DNSName' \
+            --output text \
+            --region ${{ env.AWS_REGION }})
+          if [ -z "$ALB_URL" ] || [ "$ALB_URL" = "None" ]; then
+            echo "ERROR: Could not resolve ALB URL"
+            exit 1
+          fi
           echo "url=$ALB_URL" >> $GITHUB_OUTPUT
 
       - name: Run smoke tests
@@ -149,7 +156,7 @@ jobs:
               --cluster $CLUSTER_NAME \
               --service traderx-${SERVICE} \
               --force-new-deployment \
-              --region ${{ env.AWS_REGION }} || true
+              --region ${{ env.AWS_REGION }}
           done
 
       - name: Wait for production services to stabilize
