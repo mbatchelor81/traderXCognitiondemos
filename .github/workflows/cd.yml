@@ -75,15 +75,18 @@ jobs:
       - name: Wait for services to stabilize
         run: |
           CLUSTER_NAME="traderx-${{ env.TENANT_ID }}-${{ env.ENVIRONMENT }}"
-          echo "Waiting 120 seconds for ECS tasks to stabilize..."
-          sleep 120
           for service in users-service trades-service web-frontend; do
             SERVICE_NAME="traderx-${service}-${{ env.TENANT_ID }}"
+            echo "Waiting for $SERVICE_NAME to stabilize..."
+            aws ecs wait services-stable \
+              --cluster $CLUSTER_NAME \
+              --services $SERVICE_NAME \
+              --no-cli-pager
             aws ecs describe-services \
               --cluster $CLUSTER_NAME \
               --services $SERVICE_NAME \
               --query 'services[0].{running: runningCount, desired: desiredCount}' \
-              --no-cli-pager || true
+              --no-cli-pager
           done
 
   smoke-test:
@@ -129,12 +132,40 @@ jobs:
               --cluster $CLUSTER_NAME \
               --service $SERVICE_NAME \
               --force-new-deployment \
-              --no-cli-pager || true
+              --no-cli-pager
           done
       - name: Wait for services to stabilize
         run: |
-          echo "Waiting 120 seconds for ECS tasks to stabilize..."
-          sleep 120
+          CLUSTER_NAME="traderx-${{ env.TENANT_ID }}-production"
+          for service in users-service trades-service web-frontend; do
+            SERVICE_NAME="traderx-${service}-${{ env.TENANT_ID }}"
+            echo "Waiting for $SERVICE_NAME to stabilize..."
+            aws ecs wait services-stable \
+              --cluster $CLUSTER_NAME \
+              --services $SERVICE_NAME \
+              --no-cli-pager
+          done
       - name: Verify deployment
         run: |
-          echo "Production deployment complete. Manual verification recommended."
+          CLUSTER_NAME="traderx-${{ env.TENANT_ID }}-production"
+          for service in users-service trades-service web-frontend; do
+            SERVICE_NAME="traderx-${service}-${{ env.TENANT_ID }}"
+            RUNNING=$(aws ecs describe-services \
+              --cluster $CLUSTER_NAME \
+              --services $SERVICE_NAME \
+              --query 'services[0].runningCount' \
+              --output text \
+              --no-cli-pager)
+            DESIRED=$(aws ecs describe-services \
+              --cluster $CLUSTER_NAME \
+              --services $SERVICE_NAME \
+              --query 'services[0].desiredCount' \
+              --output text \
+              --no-cli-pager)
+            echo "$SERVICE_NAME: running=$RUNNING desired=$DESIRED"
+            if [ "$RUNNING" != "$DESIRED" ]; then
+              echo "ERROR: $SERVICE_NAME running count ($RUNNING) does not match desired ($DESIRED)"
+              exit 1
+            fi
+          done
+          echo "All production services verified."
