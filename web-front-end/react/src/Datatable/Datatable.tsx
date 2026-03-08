@@ -153,16 +153,18 @@ export const Datatable = () => {
 		const numericId = event.target.value ? Number(event.target.value) : 0;
 		setSelectedId(numericId);
 		setCurrentAccount(event.target.value);
-		socketModule.socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/trades`);
-		socketModule.socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/positions`);
-		socketModule.socket.on(PUBLISH, (data: { topic: string; payload: TradeData | PositionData }) => {
-			if (data.topic === `/accounts/${event.target.value}/trades`) {
-				setTradeRowData((current: TradeData[]) => [...current, data.payload as TradeData]);
-			}
-			if (data.topic === `/accounts/${event.target.value}/positions`) {
-				setPositionRowData((current: PositionData[]) => [...current, data.payload as PositionData]);
-			}
-		});
+		if (event.target.value) {
+			socketModule.socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/trades`);
+			socketModule.socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/positions`);
+			socketModule.socket.on(PUBLISH, (data: { topic: string; payload: TradeData | PositionData }) => {
+				if (data.topic === `/accounts/${event.target.value}/trades`) {
+					setTradeRowData((current: TradeData[]) => [...current, data.payload as TradeData]);
+				}
+				if (data.topic === `/accounts/${event.target.value}/positions`) {
+					setPositionRowData((current: PositionData[]) => [...current, data.payload as PositionData]);
+				}
+			});
+		}
 	}, [selectedId]);
 
 	useEffect(() => {

@@ -71,13 +71,14 @@ const ConnectionStatus = () => {
     checkConnection();
     const interval = setInterval(checkConnection, 2000);
 
-    socketModule.socket.on('connect', onConnect);
-    socketModule.socket.on('disconnect', onDisconnect);
+    const currentSocket = socketModule.socket;
+    currentSocket.on('connect', onConnect);
+    currentSocket.on('disconnect', onDisconnect);
 
     return () => {
       clearInterval(interval);
-      socketModule.socket.off('connect', onConnect);
-      socketModule.socket.off('disconnect', onDisconnect);
+      currentSocket.off('connect', onConnect);
+      currentSocket.off('disconnect', onDisconnect);
     };
   }, [tenant]);
 
