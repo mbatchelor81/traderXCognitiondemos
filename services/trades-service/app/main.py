@@ -13,6 +13,7 @@ from app.config import (
     SOCKETIO_CORS_ALLOWED,
 )
 from app.middleware import TenantMiddleware
+from app.observability import setup_observability
 from app.routes import trades, positions, reference_data
 from app.services.trade_processor import set_socketio_server
 
@@ -99,6 +100,9 @@ def create_app() -> FastAPI:
     @app.get("/health")
     def health():
         return {"status": "UP", "service": SERVICE_NAME, "tenant": TENANT_ID}
+
+    # Initialize observability (metrics, tracing, correlation ID)
+    setup_observability(app)
 
     logger.info("Trades service application created")
     return app
