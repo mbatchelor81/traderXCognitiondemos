@@ -44,7 +44,7 @@ export const AccountsDropdown = ({ handleChange, currentAccount }: AccountsDropd
             <em style={{ color: '#6b7280' }}>None</em>
           </MenuItem>
           {accounts.map((account: AccountData) => (
-            <MenuItem key={account.id} value={account.id}>
+            <MenuItem key={account.id} value={String(account.id)}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <span>{account.displayName}</span>
                 <span style={{ color: '#6b7280', fontSize: '0.8rem' }}>#{account.id}</span>
