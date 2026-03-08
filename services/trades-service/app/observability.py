@@ -44,10 +44,15 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         method = request.method
-        path = request.url.path
+        raw_path = request.url.path
         start_time = time.perf_counter()
 
         response = await call_next(request)
+
+        # Use the route template (e.g. /positions/{account_id}) instead of
+        # the resolved path to avoid unbounded metric cardinality.
+        route = request.scope.get("route")
+        path = route.path if route else raw_path
 
         duration = time.perf_counter() - start_time
         status = str(response.status_code)
