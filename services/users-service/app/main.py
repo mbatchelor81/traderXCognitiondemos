@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import TENANT_ID, SERVICE_NAME, CORS_ORIGINS, DEBUG, LOG_LEVEL
 from app.middleware import TenantMiddleware
+from app.observability import setup_observability
 from app.routes import accounts, people
 
 # Structured JSON logging
@@ -54,6 +55,8 @@ def create_app() -> FastAPI:
     @app.get("/health")
     def health():
         return {"status": "UP", "service": SERVICE_NAME, "tenant": TENANT_ID}
+
+    setup_observability(app)
 
     logger.info("Users service application created")
     return app
