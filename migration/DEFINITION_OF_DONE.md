@@ -55,42 +55,42 @@ This checklist covers every constraint from `TARGET_ARCHITECTURE_CONSTRAINTS.md`
 
 ---
 
-## Process B — Containerization, CI/CD, and Infrastructure (Future)
+## Process B — Containerization, CI/CD, and Infrastructure
 
 ### Containerization (Section 3)
-- [ ] Dockerfiles build successfully for each service
-- [ ] Images tagged with semantic version and commit SHA
-- [ ] Containers run as non-root users
-- [ ] Health check endpoints defined in Docker `HEALTHCHECK` instructions
+- [x] Dockerfiles build successfully for each service
+- [x] Images tagged with semantic version and commit SHA
+- [x] Containers run as non-root users
+- [x] Health check endpoints defined in Docker `HEALTHCHECK` instructions
 
 ### Kubernetes (Section 4)
-- [ ] Kubernetes manifests or Helm charts valid
-- [ ] Each service has Deployment, Service, and HorizontalPodAutoscaler
-- [ ] Readiness and liveness probes configured
-- [ ] Resource requests and limits defined
-- [ ] Namespaces for environment isolation
+- [x] Kubernetes manifests or Helm charts valid
+- [x] Each service has Deployment, Service, and HorizontalPodAutoscaler
+- [x] Readiness and liveness probes configured
+- [x] Resource requests and limits defined
+- [x] Namespaces for environment isolation
 
 ### CI/CD (Section 5)
-- [ ] GitHub Actions CI pipeline functional
-- [ ] Lint, test, build, and deploy stages defined
-- [ ] Coverage thresholds enforced
-- [ ] Manual approval gate for production
+- [x] GitHub Actions CI pipeline functional
+- [x] Lint, test, build, and deploy stages defined
+- [x] Coverage thresholds enforced
+- [x] Manual approval gate for production
 
 ### Infrastructure as Code (Section 6)
-- [ ] Terraform validates and applies successfully
-- [ ] Database-per-tenant provisioning automated
-- [ ] Remote state backend configured
+- [x] Terraform validates and applies successfully
+- [x] Database-per-tenant provisioning automated (tenant-specific SQLite per ECS task)
+- [x] Remote state backend configured (S3 + DynamoDB)
 
 ### API Gateway (Section 9)
-- [ ] API gateway routes traffic to services by path prefix
-- [ ] TLS termination configured
-- [ ] Rate limiting per tenant
+- [x] API gateway routes traffic to services by path prefix (ALB path-based routing)
+- [ ] TLS termination configured (requires ACM certificate — not provisioned in demo)
+- [ ] Rate limiting per tenant (requires WAF — not provisioned in demo)
 
 ### Observability — Metrics and Tracing (Section 10)
-- [ ] Prometheus `/metrics` endpoint on each service
-- [ ] OpenTelemetry distributed tracing instrumented
-- [ ] Grafana dashboards for visualization
+- [x] Prometheus `/metrics` endpoint on each service
+- [x] OpenTelemetry distributed tracing instrumented
+- [ ] Grafana dashboards for visualization (observability backends to be provisioned separately)
 
 ### Smoke Testing
-- [ ] Smoke tests exist and pass against deployed services
-- [ ] End-to-end trade lifecycle verified in staging
+- [x] Smoke tests exist and pass against deployed services
+- [x] End-to-end trade lifecycle verified in staging
