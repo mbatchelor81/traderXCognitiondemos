@@ -1,12 +1,12 @@
 """
-Database module for TraderX Monolith.
+Database module for TraderX.
 Provides SQLAlchemy engine, session factory, and declarative base.
 """
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-from app.config import *  # noqa: F401,F403 — intentional global config import
+from app.config import DATABASE_URL, DATABASE_ECHO
 
 engine = create_engine(
     DATABASE_URL,

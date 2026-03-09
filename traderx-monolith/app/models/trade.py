@@ -1,20 +1,18 @@
 """
 Trade SQLAlchemy model.
-Ported from trade-processor Java/Spring implementation.
+Single-tenant: no tenant_id column.
 """
 
 from datetime import datetime
 
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from app.database import Base
-from app.config import *  # noqa: F401,F403 — intentional global config import
 
 
 class Trade(Base):
     __tablename__ = "trades"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column(String(50), nullable=False, default=DEFAULT_TENANT)
     account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)
     security = Column(String(50), nullable=False)
     side = Column(String(4), nullable=False)  # Buy or Sell
@@ -26,7 +24,6 @@ class Trade(Base):
     def to_dict(self):
         return {
             "id": self.id,
-            "tenant_id": self.tenant_id,
             "accountId": self.account_id,
             "security": self.security,
             "side": self.side,

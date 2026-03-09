@@ -2,10 +2,8 @@ import { useEffect, useState } from "react";
 import { AccountData } from "../AccountsDropdown";
 import { Environment } from '../env';
 import { fetchWithTenant } from '../fetchWithTenant';
-import { useTenant } from '../TenantContext';
 
 export const GetAccounts = () => {
-	const { tenant } = useTenant();
 	const [accounts, setAccounts] = useState<AccountData[]>([]);
   useEffect(() => {
     const loadAccounts = async () => {
@@ -19,6 +17,6 @@ export const GetAccounts = () => {
       }
     }
     loadAccounts();
-  }, [tenant]);
+  }, []);
 	return accounts
 }

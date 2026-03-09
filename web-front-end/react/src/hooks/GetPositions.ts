@@ -2,10 +2,8 @@ import { useEffect, useState } from "react";
 import { PositionData } from "../Datatable/types";
 import { Environment } from '../env';
 import { fetchWithTenant } from '../fetchWithTenant';
-import { useTenant } from '../TenantContext';
 
 export const GetPositions = (accountId:number) => {
-	const { tenant } = useTenant();
 	const [positionsData, setPositionsData] = useState<PositionData[]>([]);
 	useEffect(() => {
 		if (accountId === 0) {
@@ -34,6 +32,6 @@ export const GetPositions = (accountId:number) => {
 		};
 		fetchData();
 		return () => { abortController.abort(); };
-	}, [accountId, tenant]);
+	}, [accountId]);
 	return positionsData;
 }

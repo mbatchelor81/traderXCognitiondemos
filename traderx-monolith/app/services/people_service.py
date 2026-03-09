@@ -1,18 +1,16 @@
 """
-People service — loads and queries JSON mock data.
-Ported from people-service .NET implementation (PeopleService.Core).
+People Service - loads and queries JSON mock data.
+Ported from people-service .NET implementation.
 """
 
 import logging
 from typing import List, Optional
 
-from app.config import *  # noqa: F401,F403 — intentional global config import
 from app.models.person import Person
 from app.utils.helpers import load_people_from_json
 
 logger = logging.getLogger(__name__)
 
-# In-memory people list — loaded once from JSON
 _people: Optional[List[Person]] = None
 
 
@@ -27,35 +25,24 @@ def _ensure_loaded():
 
 def get_person(logon_id: Optional[str] = None,
                employee_id: Optional[str] = None) -> Optional[Person]:
-    """
-    Get a single person by LogonId or EmployeeId.
-    Mirrors PeopleService.Core.DirectoryService.GetPerson.
-    """
+    """Get a single person by LogonId or EmployeeId."""
     _ensure_loaded()
-
     if logon_id:
         for p in _people:
             if p.logon_id == logon_id:
                 return p
-
     if employee_id:
         for p in _people:
             if p.employee_id == employee_id:
                 return p
-
     return None
 
 
 def get_matching_people(search_text: str, take: int = 10) -> List[Person]:
-    """
-    Search people by name or logon_id containing search_text.
-    Mirrors PeopleService.Core.DirectoryService.GetMatchingPerson.
-    """
+    """Search people by name or logon_id containing search_text."""
     _ensure_loaded()
-
     if not search_text or len(search_text) < 3:
         return []
-
     search_lower = search_text.lower()
     results = []
     for p in _people:
@@ -64,16 +51,12 @@ def get_matching_people(search_text: str, take: int = 10) -> List[Person]:
             results.append(p)
             if len(results) >= take:
                 break
-
     return results
 
 
 def validate_person(logon_id: Optional[str] = None,
                     employee_id: Optional[str] = None) -> bool:
-    """
-    Validate that a person exists.
-    Mirrors PeopleService.Core.DirectoryService.ValidatePerson.
-    """
+    """Validate that a person exists."""
     return get_person(logon_id=logon_id, employee_id=employee_id) is not None
 
 

@@ -1,6 +1,5 @@
 """
-Shared utility functions imported everywhere.
-This module provides common helpers used across all layers of the application.
+Shared utility functions for TraderX.
 """
 
 import csv
@@ -10,7 +9,13 @@ import os
 from datetime import datetime
 from typing import List, Optional
 
-from app.config import *  # noqa: F401,F403 — intentional global config import
+from app.config import (
+    REFERENCE_DATA_FILE,
+    PEOPLE_DATA_FILE,
+    MIN_TRADE_QUANTITY,
+    MAX_TRADE_QUANTITY,
+    AUDIT_ENABLED,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -136,42 +141,28 @@ def validate_trade_state(state: str) -> bool:
 
 
 # =============================================================================
-# Tenant Helpers
-# =============================================================================
-
-def get_tenant_from_request(request) -> str:
-    """Extract tenant_id from request state (set by middleware)."""
-    return getattr(request.state, "tenant_id", DEFAULT_TENANT)
-
-
-def is_valid_tenant(tenant_id: str) -> bool:
-    """Check if a tenant_id is known."""
-    return tenant_id in KNOWN_TENANTS
-
-
-# =============================================================================
 # Logging Helpers
 # =============================================================================
 
-def log_audit_event(event_type: str, tenant_id: str, details: str):
-    """Log an audit event. Used by trade_processor and other services."""
+def log_audit_event(event_type: str, details: str):
+    """Log an audit event."""
     if not AUDIT_ENABLED:
         return
     timestamp = now_utc().isoformat()
-    audit_msg = f"[AUDIT] [{timestamp}] [{tenant_id}] [{event_type}] {details}"
+    audit_msg = f"[AUDIT] [{timestamp}] [{event_type}] {details}"
     logger.info(audit_msg)
 
 
-def log_trade_event(trade_id, account_id, action, tenant_id, extra=""):
+def log_trade_event(trade_id, account_id, action, extra=""):
     """Log a trade-specific event for audit trail."""
     details = f"trade_id={trade_id} account_id={account_id} action={action} {extra}"
-    log_audit_event("TRADE", tenant_id, details)
+    log_audit_event("TRADE", details)
 
 
-def log_position_event(account_id, security, action, tenant_id, extra=""):
+def log_position_event(account_id, security, action, extra=""):
     """Log a position-specific event for audit trail."""
     details = f"account_id={account_id} security={security} action={action} {extra}"
-    log_audit_event("POSITION", tenant_id, details)
+    log_audit_event("POSITION", details)
 
 
 # =============================================================================

@@ -1,26 +1,19 @@
 """
 Trade endpoints.
-Ported from trade-service and position-service (trades query) Java/Spring implementations.
-
-NOTE: The POST /trade/ endpoint calls trade_processor directly (in-process),
-replacing the original pub/sub architecture. Some query endpoints use raw
-SQLAlchemy queries inline instead of going through the service layer —
-intentionally inconsistent (architectural smell).
+Single-tenant version - no tenant_id handling.
 """
 
 import logging
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
-from app.config import *  # noqa: F401,F403 — intentional global config import
 from app.database import get_db
 from app.models.trade import Trade
-from app.services import trade_processor
-from app.utils.helpers import get_tenant_from_request
+from app.services import trading_service
+from app.utils.helpers import log_audit_event
 
 logger = logging.getLogger(__name__)
 
@@ -43,25 +36,18 @@ class TradeOrderRequest(BaseModel):
 # =============================================================================
 
 @router.post("/trade/")
-async def submit_trade(body: TradeOrderRequest, request: Request,
+async def submit_trade(body: TradeOrderRequest,
                        db: Session = Depends(get_db)):
-    """
-    Submit a new trade order.
-    Processes the trade synchronously (in-process) instead of publishing
-    to a message queue like the original microservice architecture.
-    """
-    tenant_id = get_tenant_from_request(request)
-
+    """Submit a new trade order. Processed synchronously in-process."""
     logger.info("Trade order received: account=%d security=%s side=%s qty=%d",
                 body.accountId, body.security, body.side, body.quantity)
 
-    result = await trade_processor.process_trade(
+    result = await trading_service.process_trade(
         db=db,
         account_id=body.accountId,
         security=body.security,
         side=body.side,
         quantity=body.quantity,
-        tenant_id=tenant_id,
     )
 
     if not result["success"]:
@@ -75,28 +61,15 @@ async def submit_trade(body: TradeOrderRequest, request: Request,
 # =============================================================================
 
 @router.get("/trades/")
-def list_all_trades(request: Request, db: Session = Depends(get_db)):
-    """
-    Get all trades for the current tenant.
-    Uses raw SQLAlchemy query inline — bypasses service layer (intentional smell).
-    """
-    tenant_id = get_tenant_from_request(request)
-
-    # Inline query — intentionally not using trade_processor.get_all_trades()
-    trades = db.query(Trade).filter(
-        Trade.tenant_id == tenant_id
-    ).order_by(desc(Trade.created)).all()
-
+def list_all_trades(db: Session = Depends(get_db)):
+    """Get all trades."""
+    trades = db.query(Trade).order_by(desc(Trade.created)).all()
     return [t.to_dict() for t in trades]
 
 
 @router.get("/trades/{account_id}")
-def list_trades_by_account(account_id: int, request: Request,
+def list_trades_by_account(account_id: int,
                            db: Session = Depends(get_db)):
-    """
-    Get all trades for a specific account.
-    This one uses the service layer — intentionally inconsistent with list_all_trades.
-    """
-    tenant_id = get_tenant_from_request(request)
-    trades = trade_processor.get_trades_for_account(db, account_id, tenant_id)
+    """Get all trades for a specific account."""
+    trades = trading_service.get_trades_for_account(db, account_id)
     return [t.to_dict() for t in trades]

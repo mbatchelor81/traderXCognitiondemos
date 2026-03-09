@@ -1,9 +1,6 @@
 """
 Person model (not a DB model — loaded from JSON mock data).
-Ported from people-service .NET implementation.
 """
-
-from app.config import *  # noqa: F401,F403 — intentional global config import
 
 
 class Person:

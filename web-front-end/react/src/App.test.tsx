@@ -16,13 +16,13 @@ test('renders TraderX header', () => {
   expect(headerElement).toBeInTheDocument();
 });
 
-test('renders tenant selector', () => {
+test('renders connection status indicator', () => {
   render(
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <App />
     </ThemeProvider>
   );
-  const tenantLabel = screen.getByText(/TENANT/i);
-  expect(tenantLabel).toBeInTheDocument();
+  const statusElement = screen.getByText(/Connected|Disconnected/i);
+  expect(statusElement).toBeInTheDocument();
 });

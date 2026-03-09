@@ -1,6 +1,6 @@
 """
 FastAPI application entry point with Socket.io mount.
-This is the main application module that wires everything together.
+Single-tenant deployment - no tenant middleware.
 """
 
 import logging
@@ -9,10 +9,13 @@ import socketio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import *  # noqa: F401,F403 — intentional global config import
-from app.middleware import TenantMiddleware
+from app.config import (
+    APP_TITLE, APP_VERSION, APP_DESCRIPTION,
+    CORS_ORIGINS, CORS_ALLOW_METHODS, CORS_ALLOW_HEADERS,
+    SOCKETIO_CORS_ALLOWED, DEBUG, LOG_LEVEL,
+)
 from app.routes import accounts, trades, positions, people, reference_data
-from app.services.trade_processor import set_socketio_server
+from app.services.trading_service import set_socketio_server
 
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
@@ -60,7 +63,7 @@ async def unsubscribe(sid, data):
         logger.info("Client %s unsubscribed from room: %s", sid, room)
 
 
-# Set the Socket.io server reference in trade_processor
+# Set the Socket.io server reference in trading_service
 set_socketio_server(sio)
 
 # =============================================================================
@@ -84,9 +87,6 @@ def create_app() -> FastAPI:
         allow_methods=CORS_ALLOW_METHODS,
         allow_headers=CORS_ALLOW_HEADERS,
     )
-
-    # Tenant middleware
-    app.add_middleware(TenantMiddleware)
 
     # Include routers
     app.include_router(accounts.router, tags=["Accounts"])

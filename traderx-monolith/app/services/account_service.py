@@ -1,19 +1,19 @@
 """
-Account CRUD service.
-Ported from account-service Java/Spring implementation.
+Account Service - Account and AccountUser CRUD.
 
-NOTE: This module has a circular dependency with trade_processor.py.
-trade_processor imports from here, and this module imports from trade_processor
-(to get trade count for account validation). Resolved via lazy imports.
+Single-tenant version: no tenant_id parameters.
+Circular dependency with trade_processor removed.
 """
 
 import logging
 from typing import List, Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.config import *  # noqa: F401,F403 — intentional global config import
+from app.config import MAX_ACCOUNTS
 from app.models.account import Account, AccountUser
+from app.models.trade import Trade
 from app.utils.helpers import log_audit_event
 
 logger = logging.getLogger(__name__)
@@ -23,134 +23,120 @@ logger = logging.getLogger(__name__)
 # Account CRUD
 # =============================================================================
 
-def get_account_by_id(db: Session, account_id: int, tenant_id: str) -> Optional[Account]:
-    """Get a single account by ID and tenant."""
-    return db.query(Account).filter(
-        Account.id == account_id,
-        Account.tenant_id == tenant_id
-    ).first()
+def get_account_by_id(db: Session, account_id: int) -> Optional[Account]:
+    """Get a single account by ID."""
+    return db.query(Account).filter(Account.id == account_id).first()
 
 
-def get_all_accounts(db: Session, tenant_id: str) -> List[Account]:
-    """Get all accounts for a tenant."""
-    return db.query(Account).filter(
-        Account.tenant_id == tenant_id
-    ).all()
+def get_all_accounts(db: Session) -> List[Account]:
+    """Get all accounts."""
+    return db.query(Account).all()
 
 
-def create_account(db: Session, display_name: str, tenant_id: str,
+def create_account(db: Session, display_name: str,
                    account_id: Optional[int] = None) -> Account:
     """Create a new account."""
-    account = Account(
-        display_name=display_name,
-        tenant_id=tenant_id,
-    )
+    account = Account(display_name=display_name)
     if account_id is not None:
         account.id = account_id
-
     db.add(account)
     db.commit()
     db.refresh(account)
-    log_audit_event("ACCOUNT_CREATED", tenant_id,
+    log_audit_event("ACCOUNT_CREATED",
                     f"account_id={account.id} display_name={display_name}")
-    logger.info("Created account %d for tenant %s", account.id, tenant_id)
+    logger.info("Created account %d", account.id)
     return account
 
 
-def update_account(db: Session, account_id: int, display_name: str,
-                   tenant_id: str) -> Optional[Account]:
+def update_account(db: Session, account_id: int,
+                   display_name: str) -> Optional[Account]:
     """Update an existing account."""
-    account = get_account_by_id(db, account_id, tenant_id)
+    account = get_account_by_id(db, account_id)
     if account is None:
         return None
-
     account.display_name = display_name
     db.commit()
     db.refresh(account)
-    log_audit_event("ACCOUNT_UPDATED", tenant_id,
+    log_audit_event("ACCOUNT_UPDATED",
                     f"account_id={account.id} display_name={display_name}")
-    logger.info("Updated account %d for tenant %s", account.id, tenant_id)
+    logger.info("Updated account %d", account.id)
     return account
 
 
-def upsert_account(db: Session, account_id: Optional[int], display_name: str,
-                   tenant_id: str) -> Account:
-    """Create or update an account (mirrors Java upsertAccount)."""
+def upsert_account(db: Session, account_id: Optional[int],
+                   display_name: str) -> Account:
+    """Create or update an account."""
     if account_id is not None:
-        existing = get_account_by_id(db, account_id, tenant_id)
+        existing = get_account_by_id(db, account_id)
         if existing is not None:
             existing.display_name = display_name
             db.commit()
             db.refresh(existing)
             return existing
+    return create_account(db, display_name, account_id)
 
-    return create_account(db, display_name, tenant_id, account_id)
+
+def check_account_limit(db: Session) -> bool:
+    """Check if the account limit has been reached."""
+    current_count = db.query(func.count(Account.id)).scalar() or 0
+    if current_count >= MAX_ACCOUNTS:
+        logger.warning("Account limit reached: %d/%d",
+                       current_count, MAX_ACCOUNTS)
+        return False
+    return True
 
 
 # =============================================================================
 # AccountUser CRUD
 # =============================================================================
 
-def get_account_user_by_id(db: Session, account_id: int, username: str,
-                           tenant_id: str) -> Optional[AccountUser]:
+def get_account_user_by_id(db: Session, account_id: int,
+                           username: str) -> Optional[AccountUser]:
     """Get a single account user by composite key."""
     return db.query(AccountUser).filter(
         AccountUser.account_id == account_id,
         AccountUser.username == username,
-        AccountUser.tenant_id == tenant_id,
     ).first()
 
 
-def get_all_account_users(db: Session, tenant_id: str) -> List[AccountUser]:
-    """Get all account users for a tenant."""
-    return db.query(AccountUser).filter(
-        AccountUser.tenant_id == tenant_id
-    ).all()
+def get_all_account_users(db: Session) -> List[AccountUser]:
+    """Get all account users."""
+    return db.query(AccountUser).all()
 
 
-def create_account_user(db: Session, account_id: int, username: str,
-                        tenant_id: str) -> AccountUser:
+def create_account_user(db: Session, account_id: int,
+                        username: str) -> AccountUser:
     """Create a new account user."""
-    account_user = AccountUser(
-        account_id=account_id,
-        username=username,
-        tenant_id=tenant_id,
-    )
+    account_user = AccountUser(account_id=account_id, username=username)
     db.add(account_user)
     db.commit()
     db.refresh(account_user)
-    log_audit_event("ACCOUNT_USER_CREATED", tenant_id,
+    log_audit_event("ACCOUNT_USER_CREATED",
                     f"account_id={account_id} username={username}")
-    logger.info("Created account user %s for account %d tenant %s",
-                username, account_id, tenant_id)
+    logger.info("Created account user %s for account %d", username, account_id)
     return account_user
 
 
-def upsert_account_user(db: Session, account_id: int, username: str,
-                        tenant_id: str) -> AccountUser:
+def upsert_account_user(db: Session, account_id: int,
+                        username: str) -> AccountUser:
     """Create or update an account user."""
-    existing = get_account_user_by_id(db, account_id, username, tenant_id)
+    existing = get_account_user_by_id(db, account_id, username)
     if existing is not None:
         return existing
-    return create_account_user(db, account_id, username, tenant_id)
+    return create_account_user(db, account_id, username)
 
 
 # =============================================================================
-# Cross-domain helper (circular dependency — intentional smell)
+# Trade count helper (no circular dependency now)
 # =============================================================================
 
-def get_trade_count_for_account(db: Session, account_id: int,
-                                tenant_id: str) -> int:
-    """
-    Get the number of trades for an account.
-    Uses lazy import from trade_processor to avoid circular import at module load.
-    This is an intentional architectural smell — circular dependency.
-    """
-    from app.services.trade_processor import count_trades_for_account
-    return count_trades_for_account(db, account_id, tenant_id)
+def count_trades_for_account(db: Session, account_id: int) -> int:
+    """Count trades for an account. Direct query, no circular import."""
+    return db.query(func.count(Trade.id)).filter(
+        Trade.account_id == account_id,
+    ).scalar() or 0
 
 
-def can_delete_account(db: Session, account_id: int, tenant_id: str) -> bool:
+def can_delete_account(db: Session, account_id: int) -> bool:
     """Check if an account can be deleted (no trades associated)."""
-    trade_count = get_trade_count_for_account(db, account_id, tenant_id)
-    return trade_count == 0
+    return count_trades_for_account(db, account_id) == 0
