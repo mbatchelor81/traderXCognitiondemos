@@ -8,6 +8,7 @@ import logging
 from app.database import SessionLocal, create_tables
 from app.models.account import Account, AccountUser
 from app.models.trade import Trade
+from app.models.position import Position
 from app.utils.helpers import now_utc
 
 logger = logging.getLogger(__name__)
@@ -61,10 +62,20 @@ def seed_database():
         ]
         for trade in trades:
             db.add(trade)
+        db.flush()
+
+        # Create matching positions for settled trades
+        positions = [
+            Position(account_id=1, security="AAPL", quantity=100, updated=now_utc()),
+            Position(account_id=1, security="MSFT", quantity=50, updated=now_utc()),
+            Position(account_id=2, security="GOOGL", quantity=25, updated=now_utc()),
+        ]
+        for position in positions:
+            db.add(position)
 
         db.commit()
-        logger.info("Database seeded successfully with %d accounts, %d users, %d trades",
-                     len(accounts), len(users), len(trades))
+        logger.info("Database seeded successfully with %d accounts, %d users, %d trades, %d positions",
+                     len(accounts), len(users), len(trades), len(positions))
         return True
 
     except Exception as e:
