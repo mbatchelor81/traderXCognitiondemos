@@ -12,6 +12,18 @@ from app.config import TENANT_ID, PEOPLE_SERVICE_URL
 from app.database import get_db
 from app.services import account_service
 
+
+def _trace_headers() -> dict:
+    """Build outbound headers with traceparent propagation."""
+    headers: dict = {}
+    try:
+        from opentelemetry import context, trace
+        from opentelemetry.propagate import inject
+        inject(headers)
+    except ImportError:
+        pass
+    return headers
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -67,6 +79,7 @@ def create_account_user(body: AccountUserCreate, db: Session = Depends(get_db)):
             f"{PEOPLE_SERVICE_URL}/people/ValidatePerson",
             params={"LogonId": body.username},
             timeout=5.0,
+            headers=_trace_headers(),
         )
         if resp.status_code == 200:
             data = resp.json()
