@@ -7,6 +7,8 @@ from typing import Dict, List
 import httpx
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
+from opentelemetry import trace
+from opentelemetry.propagate import inject
 
 from app.config import (
     TENANT_ALLOWED_SIDES, TENANT_AUTO_SETTLE,
@@ -26,11 +28,19 @@ def set_socketio_server(sio):
     logger.info("Socket.io server reference set in trading service")
 
 
+def _inject_trace_headers() -> dict:
+    """Build headers dict with W3C traceparent propagated from current span."""
+    headers: dict = {}
+    inject(headers)
+    return headers
+
+
 async def validate_account_exists(account_id: int) -> bool:
     """Validate account exists via Account Service HTTP call."""
     try:
+        headers = _inject_trace_headers()
         async with httpx.AsyncClient() as client:
-            resp = await client.get(f"{ACCOUNT_SERVICE_URL}/account/{account_id}", timeout=5.0)
+            resp = await client.get(f"{ACCOUNT_SERVICE_URL}/account/{account_id}", timeout=5.0, headers=headers)
             return resp.status_code == 200
     except httpx.RequestError as e:
         logger.warning("Account service unavailable: %s", str(e))
@@ -40,8 +50,9 @@ async def validate_account_exists(account_id: int) -> bool:
 async def validate_security_exists(security: str) -> bool:
     """Validate security exists via Reference Data Service HTTP call."""
     try:
+        headers = _inject_trace_headers()
         async with httpx.AsyncClient() as client:
-            resp = await client.get(f"{REFERENCE_DATA_SERVICE_URL}/stocks/{security}", timeout=5.0)
+            resp = await client.get(f"{REFERENCE_DATA_SERVICE_URL}/stocks/{security}", timeout=5.0, headers=headers)
             return resp.status_code == 200
     except httpx.RequestError as e:
         logger.warning("Reference data service unavailable: %s", str(e))

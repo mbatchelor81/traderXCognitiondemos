@@ -6,6 +6,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from opentelemetry.propagate import inject
 
 from app.config import TENANT_ID, PEOPLE_SERVICE_URL
 from app.database import get_db
@@ -71,7 +72,9 @@ def create_account_user(body: AccountUserCreate, request: Request, db: Session =
     tenant_id = _get_tenant(request)
     # Validate person via People Service HTTP call
     try:
-        resp = httpx.get(f"{PEOPLE_SERVICE_URL}/people/ValidatePerson", params={"LogonId": body.username}, timeout=5.0)
+        headers: dict = {}
+        inject(headers)
+        resp = httpx.get(f"{PEOPLE_SERVICE_URL}/people/ValidatePerson", params={"LogonId": body.username}, timeout=5.0, headers=headers)
         if resp.status_code == 200:
             data = resp.json()
             if not data.get("IsValid", False):
