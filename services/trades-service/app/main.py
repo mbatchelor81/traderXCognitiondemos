@@ -51,7 +51,7 @@ async def subscribe(sid, data):
     """Subscribe a client to a topic (room)."""
     topic = data.get("topic") if isinstance(data, dict) else data
     if topic:
-        sio.enter_room(sid, topic)
+        await sio.enter_room(sid, topic)
         logger.info("Client %s subscribed to %s", sid, topic)
 
 
@@ -60,7 +60,7 @@ async def unsubscribe(sid, data):
     """Unsubscribe a client from a topic (room)."""
     topic = data.get("topic") if isinstance(data, dict) else data
     if topic:
-        sio.leave_room(sid, topic)
+        await sio.leave_room(sid, topic)
         logger.info("Client %s unsubscribed from %s", sid, topic)
 
 
