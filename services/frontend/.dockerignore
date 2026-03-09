@@ -1,0 +1,7 @@
+node_modules/
+.env
+.env.local
+build/
+.pytest_cache
+__pycache__
+*.pyc
