@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
-from app.config import *  # noqa: F401,F403 — intentional global config import
+from app.config import TENANT_ID
 from app.database import SessionLocal
 from app.models.account import Account, AccountUser
 from app.models.trade import Trade
@@ -301,10 +301,17 @@ def seed_initech(db: Session):
     logger.info("Seeded initech: 3 accounts, 8 trades, 7 positions")
 
 
+_SEED_FUNCTIONS = {
+    "acme_corp": seed_acme_corp,
+    "globex_inc": seed_globex_inc,
+    "initech": seed_initech,
+}
+
+
 def seed_database():
     """
-    Main seed function. Populates the database with sample data
-    distributed across 3 tenants. Only runs if the database is empty.
+    Main seed function. Seeds only the current TENANT_ID's data.
+    Only runs if the database is empty.
     """
     db = SessionLocal()
     try:
@@ -313,21 +320,19 @@ def seed_database():
             return False
 
         logger.info("=" * 60)
-        logger.info("SEEDING DATABASE")
+        logger.info("SEEDING DATABASE for tenant: %s", TENANT_ID)
         logger.info("=" * 60)
 
-        seed_acme_corp(db)
-        seed_globex_inc(db)
-        seed_initech(db)
+        seed_fn = _SEED_FUNCTIONS.get(TENANT_ID)
+        if seed_fn:
+            seed_fn(db)
+        else:
+            logger.warning("No seed data defined for tenant '%s', skipping", TENANT_ID)
 
         db.commit()
 
         logger.info("=" * 60)
-        logger.info("DATABASE SEEDING COMPLETE")
-        logger.info("  Tenants: acme_corp, globex_inc, initech")
-        logger.info("  Total accounts: 7")
-        logger.info("  Total trades: 21")
-        logger.info("  Total positions: 19")
+        logger.info("DATABASE SEEDING COMPLETE for tenant: %s", TENANT_ID)
         logger.info("=" * 60)
 
         return True

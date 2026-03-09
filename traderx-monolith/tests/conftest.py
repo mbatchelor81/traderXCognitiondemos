@@ -1,4 +1,11 @@
 """Shared test fixtures for TraderX monolith tests."""
+import os
+
+# Set TENANT_ID before any app imports (config.py reads it at import time)
+os.environ.setdefault("TENANT_ID", "acme_corp")
+# Use in-memory database for tests
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
