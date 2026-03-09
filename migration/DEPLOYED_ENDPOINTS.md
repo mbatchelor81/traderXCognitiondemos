@@ -29,7 +29,7 @@
 | `/accountuser` | account-service | 8001 |
 | `/trade` | trading-service | 8002 |
 | `/positions` | position-service | 8003 |
-| `/trades` | position-service | 8003 |
+| `/trades` | trading-service | 8002 |
 | `/stocks` | reference-data-service | 8004 |
 | `/people` | people-service | 8005 |
 | `/health` | account-service | 8001 |
