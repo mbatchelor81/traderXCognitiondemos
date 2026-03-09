@@ -28,14 +28,19 @@ def load_people():
     _people = []
     _people_by_logon = {}
     for entry in raw:
+        full_name = entry.get("FullName", entry.get("full_name", ""))
+        name_parts = full_name.split(" ", 1)
+        first_name = entry.get("FirstName", entry.get("first_name", name_parts[0] if name_parts else ""))
+        last_name = entry.get("LastName", entry.get("last_name", name_parts[1] if len(name_parts) > 1 else ""))
+        avatar_url = entry.get("AvatarUrl", entry.get("avatar_url", entry.get("PhotoUrl", entry.get("photo_url", ""))))
         person = Person(
             logon_id=entry.get("LogonId", entry.get("logon_id", "")),
-            first_name=entry.get("FirstName", entry.get("first_name", "")),
-            last_name=entry.get("LastName", entry.get("last_name", "")),
-            full_name=entry.get("FullName", entry.get("full_name", "")),
+            first_name=first_name,
+            last_name=last_name,
+            full_name=full_name,
             email=entry.get("Email", entry.get("email", "")),
             department=entry.get("Department", entry.get("department", "")),
-            avatar_url=entry.get("AvatarUrl", entry.get("avatar_url", "")),
+            avatar_url=avatar_url,
         )
         _people.append(person)
         _people_by_logon[person.logon_id.lower()] = person
