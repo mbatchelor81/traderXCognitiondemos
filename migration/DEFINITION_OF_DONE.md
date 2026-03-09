@@ -7,53 +7,53 @@ This checklist covers every constraint from `TARGET_ARCHITECTURE_CONSTRAINTS.md`
 ## Process A — Single-Tenant Migration & Service Extraction
 
 ### Single-Tenant Isolation (Section 1)
-- [ ] App runs in single-tenant mode only
-- [ ] Tenant chosen at startup via `TENANT_ID` env var
-- [ ] Application crashes immediately if `TENANT_ID` is not set
-- [ ] Requests with mismatched `X-Tenant-ID` header rejected with 403
-- [ ] No shared in-memory tenant state (`CURRENT_TENANT`, `_runtime_state`, `KNOWN_TENANTS` removed)
-- [ ] No mutable tenant switching at runtime (`set_current_tenant()` removed)
-- [ ] Frontend uses build-time `REACT_APP_TENANT_ID` — no runtime tenant selector
+- [x] App runs in single-tenant mode only
+- [x] Tenant chosen at startup via `TENANT_ID` env var
+- [x] Application crashes immediately if `TENANT_ID` is not set
+- [x] Requests with mismatched `X-Tenant-ID` header rejected with 403
+- [x] No shared in-memory tenant state (`CURRENT_TENANT`, `_runtime_state`, `KNOWN_TENANTS` removed)
+- [x] No mutable tenant switching at runtime (`set_current_tenant()` removed)
+- [x] Frontend uses build-time `REACT_APP_TENANT_ID` — no runtime tenant selector
 
 ### Data Isolation (Section 2)
-- [ ] Data isolation implemented (database per tenant)
-- [ ] Each `TENANT_ID` produces a separate database file
-- [ ] `DATABASE_URL` env var overrides for production use
-- [ ] Cross-tenant queries impossible by design
+- [x] Data isolation implemented (database per tenant)
+- [x] Each `TENANT_ID` produces a separate database file
+- [x] `DATABASE_URL` env var overrides for production use
+- [x] Cross-tenant queries impossible by design
 
 ### Service Extraction (Section 7)
-- [ ] Domain services extracted per service boundary table in `TARGET_ARCHITECTURE_CONSTRAINTS.md`
-- [ ] `users-service` (port 8001): accounts, account-users, people directory
-- [ ] `trades-service` (port 8002): trades, positions, reference data, Socket.io
-- [ ] Each service requires `TENANT_ID` at startup (fail-fast)
-- [ ] Each service has its own database (no shared DB access)
+- [x] Domain services extracted per service boundary table in `TARGET_ARCHITECTURE_CONSTRAINTS.md`
+- [x] `users-service` (port 8001): accounts, account-users, people directory
+- [x] `trades-service` (port 8002): trades, positions, reference data, Socket.io
+- [x] Each service requires `TENANT_ID` at startup (fail-fast)
+- [x] Each service has its own database (no shared DB access)
 
 ### Cross-Service Communication (Section 8)
-- [ ] Cross-service communication uses HTTP APIs only (no shared DB access)
-- [ ] No direct imports between service packages
-- [ ] Inter-service URLs configurable via environment variables
-- [ ] No circular dependencies between services
+- [x] Cross-service communication uses HTTP APIs only (no shared DB access)
+- [x] No direct imports between service packages
+- [x] Inter-service URLs configurable via environment variables
+- [x] No circular dependencies between services
 
 ### API Contracts
-- [ ] Each service has a `/health` endpoint returning `{"status": "UP", "service": "<name>", "tenant": "<TENANT_ID>"}`
-- [ ] Each service has an OpenAPI spec accessible at `/docs`
+- [x] Each service has a `/health` endpoint returning `{"status": "UP", "service": "<name>", "tenant": "<TENANT_ID>"}`
+- [x] Each service has an OpenAPI spec accessible at `/docs`
 
 ### Observability (Section 10)
-- [ ] Structured JSON logging with `tenant_id` and `service` fields
+- [x] Structured JSON logging with `tenant_id` and `service` fields
 - [ ] Each service includes correlation ID support
 
 ### Graceful Shutdown
-- [ ] Each service handles `SIGTERM` gracefully (drain in-flight requests)
+- [x] Each service handles `SIGTERM` gracefully (drain in-flight requests)
 
 ### Tests
-- [ ] Each service has its own test suite (health, CRUD, cross-service mocks)
-- [ ] Integration test script exists at `tests/integration/test_cross_service.py`
-- [ ] All test suites pass with `TENANT_ID` set
+- [x] Each service has its own test suite (health, CRUD, cross-service mocks)
+- [x] Integration test script exists at `tests/integration/test_cross_service.py`
+- [x] All test suites pass with `TENANT_ID` set
 
 ### Documentation
-- [ ] `migration/MIGRATION_PLAN.md` exists and is accurate
-- [ ] `migration/DEFINITION_OF_DONE.md` exists (this file)
-- [ ] Monolith README has deprecation notice pointing to `services/`
+- [x] `migration/MIGRATION_PLAN.md` exists and is accurate
+- [x] `migration/DEFINITION_OF_DONE.md` exists (this file)
+- [x] Monolith README has deprecation notice pointing to `services/`
 
 ---
 
