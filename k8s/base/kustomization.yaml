@@ -30,3 +30,4 @@ resources:
   - people-service-configmap.yaml
   - people-service-secret.yaml
   - people-service-hpa.yaml
+  - ingress.yaml

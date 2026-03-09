@@ -6,6 +6,23 @@ resources:
 
 namespace: traderx-test-tenant
 
+images:
+  - name: account-service
+    newName: 599083837640.dkr.ecr.us-east-1.amazonaws.com/traderx-account-service-test_tenant
+    newTag: latest
+  - name: trading-service
+    newName: 599083837640.dkr.ecr.us-east-1.amazonaws.com/traderx-trading-service-test_tenant
+    newTag: latest
+  - name: position-service
+    newName: 599083837640.dkr.ecr.us-east-1.amazonaws.com/traderx-position-service-test_tenant
+    newTag: latest
+  - name: reference-data-service
+    newName: 599083837640.dkr.ecr.us-east-1.amazonaws.com/traderx-reference-data-service-test_tenant
+    newTag: latest
+  - name: people-service
+    newName: 599083837640.dkr.ecr.us-east-1.amazonaws.com/traderx-people-service-test_tenant
+    newTag: latest
+
 patches:
   - target:
       kind: Deployment
