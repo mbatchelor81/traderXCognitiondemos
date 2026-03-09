@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.config import *  # noqa: F401,F403 — intentional global config import
+from app.config import TENANT_ID
 from app.database import get_db
 from app.models.account import Account, AccountUser
 from app.models.position import Position

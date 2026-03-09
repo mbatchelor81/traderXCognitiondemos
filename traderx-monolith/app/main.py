@@ -9,7 +9,18 @@ import socketio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import *  # noqa: F401,F403 — intentional global config import
+from app.config import (
+    TENANT_ID,
+    APP_TITLE,
+    APP_VERSION,
+    APP_DESCRIPTION,
+    CORS_ORIGINS,
+    CORS_ALLOW_METHODS,
+    CORS_ALLOW_HEADERS,
+    SOCKETIO_CORS_ALLOWED,
+    DEBUG,
+    LOG_LEVEL,
+)
 from app.middleware import TenantMiddleware
 from app.routes import accounts, trades, positions, people, reference_data
 from app.services.trade_processor import set_socketio_server
@@ -105,9 +116,9 @@ def create_app() -> FastAPI:
 
     @app.get("/health")
     def health():
-        return {"status": "UP"}
+        return {"status": "UP", "service": APP_TITLE, "tenant": TENANT_ID}
 
-    logger.info("FastAPI application created with all routes")
+    logger.info("FastAPI application created for tenant: %s", TENANT_ID)
     return app
 
 

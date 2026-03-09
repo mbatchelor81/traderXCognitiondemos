@@ -11,7 +11,7 @@ import logging
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
-from app.config import *  # noqa: F401,F403 — intentional global config import
+from app.config import TENANT_ID
 from app.database import get_db
 from app.models.position import Position
 from app.utils.helpers import get_tenant_from_request

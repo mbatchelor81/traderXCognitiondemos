@@ -16,13 +16,14 @@ test('renders TraderX header', () => {
   expect(headerElement).toBeInTheDocument();
 });
 
-test('renders tenant selector', () => {
+test('renders tenant name from build-time env var', () => {
   render(
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <App />
     </ThemeProvider>
   );
-  const tenantLabel = screen.getByText(/TENANT/i);
-  expect(tenantLabel).toBeInTheDocument();
+  // REACT_APP_TENANT_ID defaults to 'acme_corp' -> displayed as 'Acme Corp'
+  const tenantChip = screen.getByText(/Acme Corp/i);
+  expect(tenantChip).toBeInTheDocument();
 });

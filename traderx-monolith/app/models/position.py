@@ -7,14 +7,14 @@ from datetime import datetime
 
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from app.database import Base
-from app.config import *  # noqa: F401,F403 — intentional global config import
+from app.config import TENANT_ID
 
 
 class Position(Base):
     __tablename__ = "positions"
 
     account_id = Column(Integer, ForeignKey("accounts.id"), primary_key=True)
-    tenant_id = Column(String(50), primary_key=True, default=DEFAULT_TENANT)
+    tenant_id = Column(String(50), primary_key=True, default=TENANT_ID)
     security = Column(String(50), primary_key=True)
     quantity = Column(Integer, nullable=False, default=0)
     updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
