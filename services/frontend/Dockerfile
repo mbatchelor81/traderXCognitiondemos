@@ -27,7 +27,7 @@ COPY --from=builder /app/build /usr/share/nginx/html
 
 # Write nginx config inline
 RUN printf 'server {\n\
-    listen 80;\n\
+    listen 8080;\n\
     server_name _;\n\
     root /usr/share/nginx/html;\n\
     index index.html;\n\
@@ -53,10 +53,10 @@ RUN chown -R appuser:appuser /var/cache/nginx /var/log/nginx && \
     mkdir -p /var/run && chown -R appuser:appuser /var/run && \
     touch /var/run/nginx.pid && chown appuser:appuser /var/run/nginx.pid
 
-EXPOSE 80
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget -q --spider http://localhost:80/health || exit 1
+    CMD wget -q --spider http://localhost:8080/health || exit 1
 
 USER appuser
 

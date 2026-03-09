@@ -20,6 +20,7 @@ resources:
   - frontend-configmap.yaml
   - frontend-secret.yaml
   - frontend-hpa.yaml
+  - ingress.yaml
 
 labels:
   - pairs:

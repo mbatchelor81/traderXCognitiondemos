@@ -6,6 +6,17 @@ resources:
 
 namespace: traderx-acme-corp
 
+images:
+  - name: traderx-users-service
+    newName: 599083837640.dkr.ecr.us-east-1.amazonaws.com/traderx-users-service-acme_corp
+    newTag: latest
+  - name: traderx-trades-service
+    newName: 599083837640.dkr.ecr.us-east-1.amazonaws.com/traderx-trades-service-acme_corp
+    newTag: latest
+  - name: traderx-frontend
+    newName: 599083837640.dkr.ecr.us-east-1.amazonaws.com/traderx-frontend-acme_corp
+    newTag: latest
+
 patches:
   # Patch namespace resource to use tenant-specific name
   - target:

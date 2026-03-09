@@ -4,4 +4,4 @@ metadata:
   name: frontend-config
   namespace: traderx
 data:
-  NGINX_PORT: "80"
+  NGINX_PORT: "8080"
