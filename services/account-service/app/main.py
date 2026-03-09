@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pythonjsonlogger import jsonlogger
 
-from app.config import TENANT_ID, SERVICE_NAME, SERVICE_PORT, LOG_LEVEL, CORS_ORIGINS
+from app.config import TENANT_ID, SERVICE_NAME, LOG_LEVEL, CORS_ORIGINS
 from app.database import create_tables
 from app.routes import accounts
 from app.observability import setup_observability
