@@ -1,0 +1,153 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - feature/single-tenant-migration
+
+env:
+  AWS_REGION: us-east-1
+  TENANT_ID: acme_corp
+  ENVIRONMENT: demo
+  ECS_CLUSTER: traderx-demo
+
+jobs:
+  build-and-push:
+    name: Build & Push - ${{ matrix.service.name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        service:
+          - name: users-service
+            context: services/users-service
+            ecr_repo_suffix: users-service
+          - name: trades-service
+            context: services/trades-service
+            ecr_repo_suffix: trades-service
+          - name: frontend
+            context: web-front-end/react
+            ecr_repo_suffix: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: traderx-${{ matrix.service.ecr_repo_suffix }}-${{ env.TENANT_ID }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          BUILD_ARGS=""
+          if [ "${{ matrix.service.name }}" = "frontend" ]; then
+            BUILD_ARGS="--build-arg REACT_APP_TENANT_ID=${{ env.TENANT_ID }} --build-arg REACT_APP_API_URL="
+          fi
+          docker build \
+            --platform linux/amd64 \
+            $BUILD_ARGS \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            ${{ matrix.service.context }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+  deploy:
+    name: Deploy to ECS
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Force new deployment for all services
+        run: |
+          for SERVICE in users-service trades-service frontend; do
+            echo "Deploying $SERVICE..."
+            aws ecs update-service \
+              --cluster ${{ env.ECS_CLUSTER }} \
+              --service traderx-${SERVICE} \
+              --force-new-deployment \
+              --region ${{ env.AWS_REGION }} || echo "Service $SERVICE not found, skipping"
+          done
+
+      - name: Wait for services to stabilize
+        run: |
+          for SERVICE in users-service trades-service frontend; do
+            echo "Waiting for $SERVICE to stabilize..."
+            aws ecs wait services-stable \
+              --cluster ${{ env.ECS_CLUSTER }} \
+              --services traderx-${SERVICE} \
+              --region ${{ env.AWS_REGION }} || echo "Service $SERVICE wait timed out"
+          done
+
+      - name: Verify running counts
+        run: |
+          for SERVICE in users-service trades-service frontend; do
+            RESULT=$(aws ecs describe-services \
+              --cluster ${{ env.ECS_CLUSTER }} \
+              --services traderx-${SERVICE} \
+              --region ${{ env.AWS_REGION }} \
+              --query 'services[0].{desired:desiredCount,running:runningCount}' \
+              --output json)
+            echo "$SERVICE: $RESULT"
+            DESIRED=$(echo $RESULT | jq '.desired')
+            RUNNING=$(echo $RESULT | jq '.running')
+            if [ "$DESIRED" != "$RUNNING" ]; then
+              echo "WARNING: $SERVICE runningCount ($RUNNING) != desiredCount ($DESIRED)"
+            fi
+          done
+
+  smoke-test:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get ALB URL
+        id: alb
+        run: |
+          ALB_DNS=$(aws elbv2 describe-load-balancers \
+            --names traderx-demo-alb \
+            --query 'LoadBalancers[0].DNSName' \
+            --output text \
+            --region ${{ env.AWS_REGION }})
+          echo "url=http://$ALB_DNS" >> $GITHUB_OUTPUT
+
+      - name: Install test dependencies
+        run: pip install -r tests/smoke/requirements.txt
+
+      - name: Run smoke tests
+        env:
+          SMOKE_TEST_URL: ${{ steps.alb.outputs.url }}
+        run: python -m pytest tests/smoke/ -v
