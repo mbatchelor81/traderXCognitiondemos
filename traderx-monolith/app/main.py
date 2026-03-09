@@ -10,16 +10,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import (
-    TENANT_ID,
-    APP_TITLE,
-    APP_VERSION,
-    APP_DESCRIPTION,
-    CORS_ORIGINS,
-    CORS_ALLOW_METHODS,
-    CORS_ALLOW_HEADERS,
-    SOCKETIO_CORS_ALLOWED,
-    DEBUG,
-    LOG_LEVEL,
+    TENANT_ID, APP_TITLE, APP_VERSION, APP_DESCRIPTION, LOG_LEVEL, DEBUG,
+    SOCKETIO_CORS_ALLOWED, CORS_ORIGINS, CORS_ALLOW_METHODS, CORS_ALLOW_HEADERS,
 )
 from app.middleware import TenantMiddleware
 from app.routes import accounts, trades, positions, people, reference_data
@@ -118,7 +110,8 @@ def create_app() -> FastAPI:
     def health():
         return {"status": "UP", "service": APP_TITLE, "tenant": TENANT_ID}
 
-    logger.info("FastAPI application created for tenant: %s", TENANT_ID)
+    logger.info("FastAPI application created with all routes")
+    logger.info("Serving tenant: %s", TENANT_ID)
     return app
 
 

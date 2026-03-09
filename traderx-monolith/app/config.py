@@ -2,18 +2,17 @@
 Global configuration module for TraderX Monolith.
 
 Single-tenant mode: TENANT_ID is required at startup.
-Each running instance serves exactly one tenant.
 """
 
 import os
 import sys
 
 # =============================================================================
-# Tenant Configuration (single-tenant mode)
+# Tenant Configuration (single-tenant — TENANT_ID required at startup)
 # =============================================================================
 TENANT_ID = os.environ.get("TENANT_ID")
 if not TENANT_ID:
-    print("ERROR: TENANT_ID environment variable is required.", file=sys.stderr)
+    print("FATAL: TENANT_ID environment variable is required.", file=sys.stderr)
     raise RuntimeError("TENANT_ID environment variable is required.")
 
 # =============================================================================
@@ -72,29 +71,30 @@ MIN_TRADE_QUANTITY = int(os.getenv("MIN_TRADE_QUANTITY", "1"))
 
 # =============================================================================
 # Tenant-specific Business Rules
-# Load only the current tenant's config at startup with sensible defaults.
+# Loaded for the current TENANT_ID only; defaults provided for unconfigured tenants.
 # =============================================================================
-_ALL_TENANT_MAX_ACCOUNTS = {
+_TENANT_MAX_ACCOUNTS = {
     "acme_corp": 100,
     "globex_inc": 50,
     "initech": 200,
 }
 
-_ALL_TENANT_ALLOWED_SIDES = {
+_TENANT_ALLOWED_SIDES = {
     "acme_corp": ["Buy", "Sell"],
     "globex_inc": ["Buy", "Sell"],
     "initech": ["Buy", "Sell"],
 }
 
-_ALL_TENANT_AUTO_SETTLE = {
+_TENANT_AUTO_SETTLE = {
     "acme_corp": True,
     "globex_inc": True,
     "initech": False,
 }
 
-TENANT_MAX_ACCOUNTS = _ALL_TENANT_MAX_ACCOUNTS.get(TENANT_ID, 100)
-TENANT_ALLOWED_SIDES = _ALL_TENANT_ALLOWED_SIDES.get(TENANT_ID, ["Buy", "Sell"])
-TENANT_AUTO_SETTLE = _ALL_TENANT_AUTO_SETTLE.get(TENANT_ID, True)
+# Resolve to current tenant's config at startup
+TENANT_MAX_ACCOUNTS = _TENANT_MAX_ACCOUNTS.get(TENANT_ID, 100)
+TENANT_ALLOWED_SIDES = _TENANT_ALLOWED_SIDES.get(TENANT_ID, ["Buy", "Sell"])
+TENANT_AUTO_SETTLE = _TENANT_AUTO_SETTLE.get(TENANT_ID, True)
 
 # =============================================================================
 # Audit Configuration

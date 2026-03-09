@@ -15,7 +15,7 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
-import * as socketModule from '../socket';
+import { socket } from '../socket';
 import { GetPositions, GetTrades } from '../hooks';
 import { CreateAccount, CreateAccountUser, CreateTradeButton } from '../ActionButtons';
 import { ColDef, ICellRendererParams } from 'ag-grid-community';
@@ -135,18 +135,18 @@ export const Datatable = () => {
 	}), []);
 
 	const handleChange = useCallback((event: SelectChangeEvent<string>) => {
-		socketModule.socket.off(PUBLISH);
+		socket.off(PUBLISH);
 		if (selectedId !== 0) {
-			socketModule.socket.emit(UNSUBSCRIBE, `/accounts/${selectedId}/trades`);
-			socketModule.socket.emit(UNSUBSCRIBE, `/accounts/${selectedId}/positions`);
+			socket.emit(UNSUBSCRIBE, `/accounts/${selectedId}/trades`);
+			socket.emit(UNSUBSCRIBE, `/accounts/${selectedId}/positions`);
 		}
 		const numericId = event.target.value ? Number(event.target.value) : 0;
 		setSelectedId(numericId);
 		setCurrentAccount(event.target.value);
 		if (event.target.value) {
-			socketModule.socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/trades`);
-			socketModule.socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/positions`);
-			socketModule.socket.on(PUBLISH, (data: { topic: string; payload: TradeData | PositionData }) => {
+			socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/trades`);
+			socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/positions`);
+			socket.on(PUBLISH, (data: { topic: string; payload: TradeData | PositionData }) => {
 				if (data.topic === `/accounts/${event.target.value}/trades`) {
 					setTradeRowData((current: TradeData[]) => [...current, data.payload as TradeData]);
 				}

@@ -1,101 +1,148 @@
-# Migration Plan — TraderX: Multi-Tenant to Single-Tenant
+# TraderX Migration Plan — Multi-Tenant to Single-Tenant
 
 ## Current State
 
 ### Tech Stack
-- **Backend**: Python 3.11+ / FastAPI monolith (`traderx-monolith/`) running on uvicorn at port 8000
-- **Frontend**: React 18 (Create React App) at `web-front-end/react/`, port 18094
+
+- **Backend**: Python 3.11+ / FastAPI monolith running on uvicorn (ASGI), port 8000
+- **Frontend**: React (Create React App) on port 3000
 - **Database**: SQLite via SQLAlchemy ORM — single file `traderx.db`
-- **Real-time**: Socket.io (python-socketio) embedded in the ASGI process
-- **Deployment**: Manual via `deploy.sh` — no containers, no CI/CD
+- **Real-time**: Socket.io server embedded in the same ASGI process
+- **Deployment**: Manual `deploy.sh` script — no containers, no CI/CD, no IaC
 
 ### Tenancy Mechanism
-The application supports 3 demo tenants (`acme_corp`, `globex_inc`, `initech`) via a shared-everything model:
 
-- **Backend**: `TenantMiddleware` (`app/middleware.py`) reads `X-Tenant-ID` HTTP header, falls back to `CURRENT_TENANT` global in `app/config.py`. The `set_current_tenant()` function (config.py:121-126) mutates the global `CURRENT_TENANT` at runtime. `KNOWN_TENANTS` list (config.py:23) is appended to when new tenants are encountered.
-- **Frontend**: `TenantContext.tsx` provides React context with mutable tenant state. `fetchWithTenant.ts` wraps `fetch()` to inject `X-Tenant-ID` header. `socket.ts` has `reconnectSocket()` that disconnects and reconnects Socket.io on tenant change. All 4 data hooks (`GetAccounts`, `GetTrades`, `GetPositions`, `GetPeople`) depend on `[tenant]` in their `useEffect` dependencies, refetching data when tenant changes. `App.tsx` renders a `TenantSelector` dropdown.
+The application supports 3 demo tenants (`acme_corp`, `globex_inc`, `initech`) via a header-based multi-tenant model:
+
+1. **Request path**: The `X-Tenant-ID` HTTP header is read by `TenantMiddleware` (`app/middleware.py`) and stored on `request.state.tenant_id`. If the header is absent, the middleware falls back to the `CURRENT_TENANT` global variable (default: `acme_corp`).
+
+2. **Mutable global state** (`app/config.py`):
+   - `CURRENT_TENANT` — mutable global variable modified at runtime via `set_current_tenant()`
+   - `KNOWN_TENANTS` — list appended to at runtime when new tenants are encountered
+   - `_runtime_state` — dict mutated from multiple modules (trade counts, timestamps, session counts)
+   - `set_current_tenant()` — function that mutates the global and appends to `KNOWN_TENANTS`
+
+3. **Frontend tenant switching** (`web-front-end/react/src/`):
+   - `TenantContext.tsx` — React context holding mutable `tenant` state with `TenantProvider`
+   - `fetchWithTenant.ts` — HTTP wrapper that injects `X-Tenant-ID` header on every request
+   - `App.tsx` — `TenantSelector` dropdown component that calls `setCurrentTenant()`, `reconnectSocket()`, and `setTenant()` on change
+   - `socket.ts` — `reconnectSocket()` disconnects and recreates the Socket.io connection with a new tenant query param
+   - All data hooks (`GetAccounts`, `GetTrades`, `GetPositions`, `GetPeople`) depend on `[tenant]` in their `useEffect` dependencies
 
 ### Database Layout
-Single SQLite database with all tenants sharing the same tables, separated only by a `tenant_id` column:
 
-| Table | Primary Key | Tenant Isolation |
+Single SQLite database file (`traderx.db`) with 4 tables. All tenants share the same tables, separated only by a `tenant_id` column:
+
+| Table | Primary Key | Tenant Column |
 |---|---|---|
-| `accounts` | `id` (auto-increment) | `tenant_id` column |
-| `account_users` | composite (`account_id`, `tenant_id`, `username`) | `tenant_id` column |
-| `trades` | `id` (auto-increment) | `tenant_id` column |
-| `positions` | composite (`account_id`, `tenant_id`, `security`) | `tenant_id` column |
+| `accounts` | `id` (auto-increment) | `tenant_id` |
+| `account_users` | composite (`account_id`, `tenant_id`, `username`) | `tenant_id` |
+| `trades` | `id` (auto-increment) | `tenant_id` |
+| `positions` | composite (`account_id`, `tenant_id`, `security`) | `tenant_id` |
+
+Schema defined in SQLAlchemy models: `app/models/account.py`, `app/models/trade.py`, `app/models/position.py`. Database engine created in `app/database.py`. Seed data for all 3 tenants in `app/seed.py`.
 
 ### Inter-Module Coupling
-- **God service**: `trade_processor.py` (1,047 lines) handles trade validation, processing, state machine, position management, Socket.io publishing, reporting, audit, and tenant-specific rules
-- **Cross-domain queries**: `trade_processor.py` directly queries `Account` and `AccountUser` tables for trade validation (`validate_account_exists()`, `validate_account_has_users()`)
-- **Circular dependency**: `account_service.py` lazily imports `count_trades_for_account` from `trade_processor.py`
-- **Inconsistent service layer**: Some route handlers use services (`account_service`, `trade_processor`), others issue raw inline SQLAlchemy queries (e.g., `GET /trades/`, `GET /positions/*`)
-- **Global mutable state**: `_runtime_state` dict in `config.py` mutated from `trade_processor.py`; tenant business rules (`TENANT_MAX_ACCOUNTS`, `TENANT_ALLOWED_SIDES`, `TENANT_AUTO_SETTLE`) stored as shared dicts in `config.py`
 
-### Deployment Model
-- Manual: `deploy.sh` installs deps, seeds DB, starts backend + frontend
-- No Dockerfiles, no docker-compose, no CI/CD pipeline
-- No health check verification in deployment
+1. **God service**: `app/services/trade_processor.py` (1,047 lines) handles trade validation, processing, state machine, position management, Socket.io publishing, reporting/aggregation, tenant-specific rules, batch processing, and audit logging. It directly queries `Account` and `AccountUser` tables (cross-domain).
+
+2. **Circular dependency**: `trade_processor.py` imports `Account`/`AccountUser` models from `app/models/account.py`. `account_service.py` lazily imports `count_trades_for_account` from `trade_processor.py` to avoid import-time failure.
+
+3. **Inconsistent service layer usage**:
+   - `GET /trades/` uses raw inline SQLAlchemy query (bypasses `trade_processor.get_all_trades()`)
+   - `GET /positions/*` endpoints use raw inline queries (bypasses trade_processor position functions)
+   - `GET /account/{id}` directly queries the `positions` table for portfolio summary
+
+4. **Shared config import**: Every module uses `from app.config import *`, pulling in all mutable globals.
+
+### Non-HTTP Entry Points
+
+None. No background workers, scheduled jobs, message queue consumers, or CLI commands.
+
+### Shared Caches
+
+- `_stocks_cache` in `app/utils/helpers.py` — S&P 500 data loaded from CSV
+- `_people_cache` in `app/utils/helpers.py` — people data loaded from JSON
+- `_people` in `app/services/people_service.py` — Person objects loaded from JSON
 
 ---
 
 ## Target State
 
 ### Single-Tenant Isolated Deployables
-Each running instance serves exactly **one tenant**, configured at startup via `TENANT_ID` environment variable:
 
-- Application crashes immediately if `TENANT_ID` is not set
-- Requests with a mismatched `X-Tenant-ID` header are rejected with 403
-- No mutable tenant state at runtime — tenant is immutable for the lifetime of the process
-- Frontend reads `REACT_APP_TENANT_ID` at build time (baked into the bundle)
+Each running instance serves exactly **one tenant**, configured at startup via the `TENANT_ID` environment variable. The application fails fast at startup if `TENANT_ID` is not set. Requests with a mismatched `X-Tenant-ID` header are rejected with HTTP 403.
 
 ### Database-per-Tenant
-- Each tenant gets its own SQLite database file (e.g., `app_acme_corp.db`)
-- `DATABASE_URL` environment variable overrides for production (tenant-specific managed database)
-- Cross-tenant queries are impossible by design
+
+Each tenant gets its own isolated database. The default SQLite connection string incorporates `TENANT_ID` (e.g., `sqlite:///app_{TENANT_ID}.db`). In production, `DATABASE_URL` overrides this to point at a tenant-specific managed database (PostgreSQL/Azure SQL).
 
 ### Extracted Services
-Two independent services aligned with domain boundaries:
+
+The monolith is decomposed into 5 independent services aligned with domain boundaries per `TARGET_ARCHITECTURE_CONSTRAINTS.md`:
 
 | Service | Port | Domain | Responsibilities |
 |---|---|---|---|
-| **users-service** | 8001 | Accounts + People | Account CRUD, account-user management, people directory |
-| **trades-service** | 8002 | Trading + Positions + Reference Data | Trade submission/processing, position tracking, reference data (S&P 500), Socket.io real-time |
+| **Account Service** | 8001 | Accounts | Account CRUD, account user management, account validation |
+| **Trading Service** | 8002 | Trading | Trade submission, trade validation, trade state machine, Socket.io publishing |
+| **Position Service** | 8003 | Positions | Position tracking, position queries, position recalculation |
+| **Reference Data Service** | 8004 | Reference Data | Stock ticker lookup, S&P 500 data |
+| **People Service** | 8005 | People | Person directory, person validation |
 
 Each service:
 - Requires `TENANT_ID` at startup (fail-fast)
 - Has its own database (no shared DB access)
 - Exposes `/health` endpoint returning `{"status": "UP", "service": "<name>", "tenant": "<TENANT_ID>"}`
-- Has an OpenAPI spec accessible at `/docs`
+- Has an OpenAPI spec (auto-generated by FastAPI)
 - Emits structured JSON logs with `tenant_id` and `service` fields
-- Handles `SIGTERM` gracefully
+- Handles SIGTERM gracefully
 - Communicates with other services via HTTP APIs only
 
-### Frontend URL Mapping
-| API Path | Service | Local URL |
-|---|---|---|
-| `/account/*`, `/accountuser/*`, `/people/*` | users-service | `http://localhost:8001` |
-| `/trade/*`, `/trades/*`, `/positions/*`, `/stocks/*` | trades-service | `http://localhost:8002` |
-| Socket.io (trade feed) | trades-service | `http://localhost:8002` |
+### Frontend
+
+The React frontend reads `REACT_APP_TENANT_ID` at build time (baked into the bundle). No runtime tenant switching. API URLs point at the extracted service ports (ready for Process B to re-point at ALB).
 
 ### Infrastructure (Process B)
-- Dockerized: Each service has its own `Dockerfile`
-- Kubernetes: Deployed to EKS/AKS with Deployments, Services, HPA
-- CI/CD: GitHub Actions with lint, test, build, deploy pipeline
-- IaC: Terraform for all infrastructure
+
+- Dockerized containers for all services
+- Kubernetes deployment (EKS/AKS) with Terraform IaC
+- GitHub Actions CI/CD pipeline
+- API gateway for routing, auth, rate limiting
 
 ---
 
 ## Phased Approach
 
-### Process A (This Migration)
-1. **Migration Documentation** — This document + Definition of Done checklist
-2. **Single-Tenant Runtime** — Remove multi-tenant switching, require `TENANT_ID` at startup, enforce in middleware, strip frontend tenant UI
-3. **Data Isolation** — Database-per-tenant via `TENANT_ID` in connection string
-4. **Service Extraction** — Extract `users-service` and `trades-service` under `services/`, break cross-domain coupling, add health endpoints, OpenAPI specs, structured logging
+### Process A (this migration)
 
-### Process B (Next Step)
-5. **Containerization** — Dockerfiles for each service
-6. **CI/CD** — GitHub Actions pipeline
-7. **Infrastructure as Code** — Terraform for cloud infrastructure
-8. **Smoke Testing** — End-to-end validation in deployed environment
+| Phase | Description | Deliverables |
+|---|---|---|
+| 1. Migration Documentation | Document current state, target state, phased plan | `migration/MIGRATION_PLAN.md`, `migration/DEFINITION_OF_DONE.md` |
+| 2. Single-Tenant Runtime | Remove tenant-switching, require `TENANT_ID` env var, enforce in middleware, strip frontend tenant UI | Modified monolith + frontend running in single-tenant mode |
+| 3. Data Isolation | Database-per-tenant via `TENANT_ID` in connection string | Tenant-specific database files |
+| 4. Service Extraction | Decompose monolith into 5 domain services with HTTP inter-service communication | `services/` directory with 5 independent services |
+
+### Process B (next step — not in scope)
+
+| Phase | Description |
+|---|---|
+| 5. Containerization | Dockerfiles for all services |
+| 6. CI/CD | GitHub Actions pipelines |
+| 7. Infrastructure as Code | Terraform for EKS/AKS, RDS, ECR, ALB |
+| 8. Smoke Testing | End-to-end smoke tests against deployed services |
+
+---
+
+## Frontend URL Mapping
+
+After service extraction, the React frontend API calls are routed as follows:
+
+| API Path | Target Service | URL |
+|---|---|---|
+| `/account/*`, `/accountuser/*` | Account Service | `http://localhost:8001` |
+| `/trade/`, `/trades/*` | Trading Service | `http://localhost:8002` |
+| `/positions/*` | Position Service | `http://localhost:8003` |
+| `/stocks/*` | Reference Data Service | `http://localhost:8004` |
+| `/people/*` | People Service | `http://localhost:8005` |
+
+In Process B, these will be re-pointed at the ALB/API Gateway URL.

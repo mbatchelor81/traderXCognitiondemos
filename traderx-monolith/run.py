@@ -27,7 +27,7 @@ def main():
 
     logger.info("=" * 60)
     logger.info("TraderX Monolith — Starting Up")
-    logger.info("TENANT_ID: %s", TENANT_ID)
+    logger.info("TENANT_ID = %s", TENANT_ID)
     logger.info("=" * 60)
 
     # Step 1: Create database tables if they don't exist

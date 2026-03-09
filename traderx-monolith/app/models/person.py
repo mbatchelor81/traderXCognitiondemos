@@ -3,7 +3,7 @@ Person model (not a DB model — loaded from JSON mock data).
 Ported from people-service .NET implementation.
 """
 
-# No config imports needed — Person is a plain data model loaded from JSON
+from app.config import TENANT_ID
 
 
 class Person:

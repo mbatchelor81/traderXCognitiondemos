@@ -29,13 +29,8 @@ from sqlalchemy import func, and_, or_, desc
 from sqlalchemy.orm import Session
 
 from app.config import (
-    TENANT_ID,
-    TENANT_AUTO_SETTLE,
-    TENANT_MAX_ACCOUNTS,
-    TENANT_ALLOWED_SIDES,
-    TRADE_PROCESSING_DELAY_MS,
-    MAX_TRADE_QUANTITY,
-    MIN_TRADE_QUANTITY,
+    TENANT_ID, TENANT_ALLOWED_SIDES, TENANT_AUTO_SETTLE, TENANT_MAX_ACCOUNTS,
+    MIN_TRADE_QUANTITY, MAX_TRADE_QUANTITY,
 )
 from app.database import SessionLocal
 from app.models.account import Account, AccountUser

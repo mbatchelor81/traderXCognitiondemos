@@ -1,28 +1,37 @@
 # TraderX Monolith (DEPRECATED)
 
-> **DEPRECATED**: This is the legacy monolith reference implementation. Use the `services/` directory for the migrated single-tenant services:
-> - `services/users-service/` — Accounts, account-users, people directory (port 8001)
-> - `services/trades-service/` — Trades, positions, reference data, Socket.IO real-time (port 8002)
+> **DEPRECATION NOTICE**: This monolith application is the legacy reference implementation.
+> It has been decomposed into independent single-tenant microservices under `services/`.
+>
+> **Do not add new features to this codebase.** All new development should target the
+> extracted services.
 
-## Overview
+## Migrated Services
 
-This directory contains the original Python/FastAPI monolith that served all TraderX functionality from a single process on port 8000. It has been superseded by the extracted domain services.
+| Service | Port | Directory |
+|---------|------|-----------|
+| Account Service | 8001 | `services/account-service/` |
+| Trading Service | 8002 | `services/trading-service/` |
+| Position Service | 8003 | `services/position-service/` |
+| Reference Data Service | 8004 | `services/reference-data-service/` |
+| People Service | 8005 | `services/people-service/` |
 
-## Running (Legacy)
+## Running the Migrated Services
+
+Each service requires a `TENANT_ID` environment variable:
 
 ```bash
-# Requires TENANT_ID environment variable
+cd services/<service-name>
 TENANT_ID=acme_corp python run.py
 ```
 
-The monolith starts on port 8000. It requires `TENANT_ID` to be set at startup.
+See `migration/MIGRATION_PLAN.md` for full migration details.
 
-## Tests (Legacy)
+## Legacy Monolith (for reference only)
 
 ```bash
-TENANT_ID=acme_corp python -m pytest tests/ -v
+cd traderx-monolith
+TENANT_ID=acme_corp python run.py
 ```
 
-## Migration
-
-See `migration/MIGRATION_PLAN.md` for the full migration plan and `migration/DEFINITION_OF_DONE.md` for the completion checklist.
+The monolith runs on port 8000 and serves all domains from a single process.

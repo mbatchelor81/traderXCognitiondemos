@@ -144,11 +144,6 @@ def get_tenant_from_request(request) -> str:
     return getattr(request.state, "tenant_id", TENANT_ID)
 
 
-def is_valid_tenant(tenant_id: str) -> bool:
-    """Check if a tenant_id matches the startup TENANT_ID."""
-    return tenant_id == TENANT_ID
-
-
 # =============================================================================
 # Logging Helpers
 # =============================================================================
