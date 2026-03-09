@@ -30,8 +30,8 @@ def load_stocks():
             if ticker:
                 stock = {
                     "ticker": ticker,
-                    "companyName": row.get("Name", row.get("name", "")),
-                    "sector": row.get("Sector", row.get("sector", "")),
+                    "companyName": row.get("Security", row.get("Name", row.get("name", ""))),
+                    "sector": row.get("GICS Sector", row.get("Sector", row.get("sector", ""))),
                 }
                 _stocks.append(stock)
                 _stocks_by_ticker[ticker.upper()] = stock
