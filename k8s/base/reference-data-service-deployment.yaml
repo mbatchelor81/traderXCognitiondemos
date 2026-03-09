@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reference-data-service
+  namespace: traderx
+  labels:
+    app: reference-data-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reference-data-service
+  template:
+    metadata:
+      labels:
+        app: reference-data-service
+    spec:
+      containers:
+        - name: reference-data-service
+          image: reference-data-service:latest
+          ports:
+            - containerPort: 8004
+          env:
+            - name: TENANT_ID
+              value: "PLACEHOLDER"
+          envFrom:
+            - configMapRef:
+                name: reference-data-service-config
+            - secretRef:
+                name: reference-data-service-secret
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

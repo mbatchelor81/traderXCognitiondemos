@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: position-service
+  namespace: traderx
+  labels:
+    app: position-service
+spec:
+  type: ClusterIP
+  selector:
+    app: position-service
+  ports:
+    - port: 8003
+      targetPort: 8003
+      protocol: TCP

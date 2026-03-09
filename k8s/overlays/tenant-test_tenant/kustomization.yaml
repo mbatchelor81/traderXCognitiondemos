@@ -1,0 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: traderx-test-tenant
+
+patches:
+  - target:
+      kind: Deployment
+      name: account-service
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: "test_tenant"
+  - target:
+      kind: Deployment
+      name: trading-service
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: "test_tenant"
+  - target:
+      kind: Deployment
+      name: position-service
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: "test_tenant"
+  - target:
+      kind: Deployment
+      name: reference-data-service
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: "test_tenant"
+  - target:
+      kind: Deployment
+      name: people-service
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: "test_tenant"

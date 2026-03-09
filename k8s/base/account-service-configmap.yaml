@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: account-service-config
+  namespace: traderx
+data:
+  SERVICE_PORT: "8001"
+  LOG_LEVEL: "INFO"
+  PEOPLE_SERVICE_URL: "http://people-service:8005"
