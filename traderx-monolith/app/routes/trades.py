@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
-from app.config import *  # noqa: F401,F403 — intentional global config import
+from app.config import TENANT_ID
 from app.database import get_db
 from app.models.trade import Trade
 from app.services import trade_processor

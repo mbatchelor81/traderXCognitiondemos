@@ -10,7 +10,7 @@ import os
 # Ensure the monolith directory is on the path
 sys.path.insert(0, os.path.dirname(__file__))
 
-from app.config import APP_HOST, APP_PORT, DEBUG, LOG_LEVEL
+from app.config import APP_HOST, APP_PORT, DEBUG, LOG_LEVEL, TENANT_ID
 from app.database import create_tables
 from app.seed import seed_database
 
@@ -27,6 +27,7 @@ def main():
 
     logger.info("=" * 60)
     logger.info("TraderX Monolith — Starting Up")
+    logger.info("TENANT_ID = %s", TENANT_ID)
     logger.info("=" * 60)
 
     # Step 1: Create database tables if they don't exist

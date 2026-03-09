@@ -10,7 +10,7 @@ import os
 from datetime import datetime
 from typing import List, Optional
 
-from app.config import *  # noqa: F401,F403 — intentional global config import
+from app.config import REFERENCE_DATA_FILE, PEOPLE_DATA_FILE, MIN_TRADE_QUANTITY, MAX_TRADE_QUANTITY, AUDIT_ENABLED, TENANT_ID
 
 logger = logging.getLogger(__name__)
 
@@ -141,12 +141,7 @@ def validate_trade_state(state: str) -> bool:
 
 def get_tenant_from_request(request) -> str:
     """Extract tenant_id from request state (set by middleware)."""
-    return getattr(request.state, "tenant_id", DEFAULT_TENANT)
-
-
-def is_valid_tenant(tenant_id: str) -> bool:
-    """Check if a tenant_id is known."""
-    return tenant_id in KNOWN_TENANTS
+    return getattr(request.state, "tenant_id", TENANT_ID)
 
 
 # =============================================================================

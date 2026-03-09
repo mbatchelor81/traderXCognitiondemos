@@ -6,7 +6,7 @@ Ported from people-service .NET implementation (PeopleService.Core).
 import logging
 from typing import List, Optional
 
-from app.config import *  # noqa: F401,F403 — intentional global config import
+from app.config import TENANT_ID
 from app.models.person import Person
 from app.utils.helpers import load_people_from_json
 
