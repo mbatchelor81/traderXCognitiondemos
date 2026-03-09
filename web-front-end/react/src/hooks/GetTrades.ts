@@ -13,7 +13,7 @@ export const GetTrades = (accountId:number) => {
 		const fetchData = async () => {
 			try {
 				const response = await fetch(
-					`${Environment.position_service_url}/trades/${accountId}`,
+					`${Environment.trade_service_url}/trades/${accountId}`,
 					{ signal: abortController.signal }
 				);
 				if (response.ok) {
