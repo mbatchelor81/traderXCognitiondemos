@@ -41,3 +41,5 @@ resources:
   - web-frontend-configmap.yaml
   - web-frontend-secret.yaml
   - web-frontend-hpa.yaml
+  # ingress
+  - ingress.yaml
