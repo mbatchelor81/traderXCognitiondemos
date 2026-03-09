@@ -73,19 +73,21 @@ def setup_observability(app: FastAPI) -> None:
     @app.middleware("http")
     async def metrics_middleware(request: Request, call_next) -> Response:
         """Record request count, latency, and error rate."""
-        # Use the route template (e.g. /positions/{accountId}) instead of the
-        # raw path to avoid unbounded Prometheus cardinality.
-        route = request.scope.get("route")
-        path = route.path if route else request.url.path
-        method = request.method
-
         # Skip metrics endpoint itself
-        if path == "/metrics":
+        if request.url.path == "/metrics":
             return await call_next(request)
 
+        method = request.method
         start_time = time.time()
         response = await call_next(request)
         duration = time.time() - start_time
+
+        # Resolve route template AFTER call_next so that FastAPI routing has
+        # populated request.scope["route"].  This gives us the template path
+        # (e.g. /positions/{accountId}) instead of the raw URL, preventing
+        # unbounded Prometheus label cardinality.
+        route = request.scope.get("route")
+        path = route.path if route else request.url.path
 
         status = str(response.status_code)
         REQUEST_COUNT.labels(
