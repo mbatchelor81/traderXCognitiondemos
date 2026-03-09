@@ -1,0 +1,159 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - feature/single-tenant-migration
+
+env:
+  AWS_REGION: us-east-1
+  TENANT_ID: acme_corp
+  EKS_CLUSTER_NAME: traderx-acme-corp-demo
+  K8S_NAMESPACE: traderx-acme-corp
+  ECR_REGISTRY: 599083837640.dkr.ecr.us-east-1.amazonaws.com
+
+jobs:
+  build-and-push:
+    name: Build & Push - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - service: users-service
+            context: ./services/users-service
+            dockerfile: ./services/users-service/Dockerfile
+            ecr_repo: traderx-users-service-acme_corp
+          - service: trades-service
+            context: ./services/trades-service
+            dockerfile: ./services/trades-service/Dockerfile
+            ecr_repo: traderx-trades-service-acme_corp
+          - service: frontend
+            context: ./web-front-end/react
+            dockerfile: ./services/frontend/Dockerfile
+            ecr_repo: traderx-frontend-acme_corp
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ matrix.ecr_repo }}:${{ github.sha }}
+            ${{ env.ECR_REGISTRY }}/${{ matrix.ecr_repo }}:latest
+          build-args: |
+            REACT_APP_TENANT_ID=${{ env.TENANT_ID }}
+
+  deploy:
+    name: Deploy to EKS
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Update image tags in kustomization
+        run: |
+          cd k8s/overlays/tenant-${{ env.TENANT_ID }}
+          kustomize edit set image \
+            traderx-users-service=${{ env.ECR_REGISTRY }}/traderx-users-service-${{ env.TENANT_ID }}:${{ github.sha }} \
+            traderx-trades-service=${{ env.ECR_REGISTRY }}/traderx-trades-service-${{ env.TENANT_ID }}:${{ github.sha }} \
+            traderx-frontend=${{ env.ECR_REGISTRY }}/traderx-frontend-${{ env.TENANT_ID }}:${{ github.sha }}
+
+      - name: Deploy to EKS
+        run: |
+          kubectl apply -k k8s/overlays/tenant-${{ env.TENANT_ID }}/
+
+      - name: Wait for rollouts
+        run: |
+          kubectl rollout status deployment/users-service -n ${{ env.K8S_NAMESPACE }} --timeout=300s
+          kubectl rollout status deployment/trades-service -n ${{ env.K8S_NAMESPACE }} --timeout=300s
+          kubectl rollout status deployment/frontend -n ${{ env.K8S_NAMESPACE }} --timeout=300s
+
+      - name: Verify pods are running
+        run: |
+          kubectl get pods -n ${{ env.K8S_NAMESPACE }}
+          # Fail if any pods are not Running
+          NOT_RUNNING=$(kubectl get pods -n ${{ env.K8S_NAMESPACE }} --no-headers | grep -v Running | wc -l)
+          if [ "$NOT_RUNNING" -gt 0 ]; then
+            echo "ERROR: Some pods are not in Running state"
+            kubectl describe pods -n ${{ env.K8S_NAMESPACE }}
+            exit 1
+          fi
+
+  smoke-test:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    needs: deploy
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Get ALB URL
+        id: get-alb
+        run: |
+          ALB_URL=$(kubectl get ingress -n ${{ env.K8S_NAMESPACE }} -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
+          if [ -z "$ALB_URL" ]; then
+            echo "No ingress found, using port-forward for smoke tests"
+            ALB_URL="localhost"
+          fi
+          echo "alb_url=$ALB_URL" >> $GITHUB_OUTPUT
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install smoke test dependencies
+        run: |
+          pip install -r tests/smoke/requirements.txt
+
+      - name: Run smoke tests
+        run: |
+          SMOKE_TEST_URL=http://${{ steps.get-alb.outputs.alb_url }} python -m pytest tests/smoke/ -v
