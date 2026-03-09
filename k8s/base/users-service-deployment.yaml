@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users-service
+  namespace: traderx
+  labels:
+    app: users-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: users-service
+  template:
+    metadata:
+      labels:
+        app: users-service
+    spec:
+      containers:
+        - name: users-service
+          image: traderx-users-service:latest
+          ports:
+            - containerPort: 8001
+          env:
+            - name: TENANT_ID
+              value: "PLACEHOLDER"
+            - name: USERS_SERVICE_URL
+              value: "http://users-service:8001"
+            - name: TRADES_SERVICE_URL
+              value: "http://trades-service:8002"
+          envFrom:
+            - configMapRef:
+                name: users-service-config
+            - secretRef:
+                name: users-service-secret
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

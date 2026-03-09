@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trades-service-config
+  namespace: traderx
+data:
+  PORT: "8002"
+  LOG_LEVEL: "INFO"
+  USERS_SERVICE_URL: "http://users-service:8001"
