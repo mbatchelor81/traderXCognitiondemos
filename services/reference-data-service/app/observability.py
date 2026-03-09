@@ -1,9 +1,7 @@
 """Observability module — Prometheus metrics and OpenTelemetry tracing."""
-import time
 import os
 
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
-from starlette.requests import Request
 from starlette.responses import Response
 
 from opentelemetry import trace
