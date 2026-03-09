@@ -22,7 +22,7 @@ def seed_database():
         existing = db.query(Account).first()
         if existing is not None:
             logger.info("Database already seeded, skipping")
-            return
+            return False
 
         logger.info("Seeding database with initial data...")
 
@@ -65,6 +65,7 @@ def seed_database():
         db.commit()
         logger.info("Database seeded successfully with %d accounts, %d users, %d trades",
                      len(accounts), len(users), len(trades))
+        return True
 
     except Exception as e:
         db.rollback()

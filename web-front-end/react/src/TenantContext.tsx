@@ -4,3 +4,4 @@
  * This file is kept as an empty placeholder to avoid breaking
  * any residual imports during the migration.
  */
+export {};
