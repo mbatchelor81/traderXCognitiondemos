@@ -13,6 +13,7 @@ from app.config import TENANT_ID, SERVICE_NAME, LOG_LEVEL, CORS_ORIGINS, SOCKETI
 from app.database import create_tables
 from app.routes import trades
 from app.services.trade_processor import set_socketio_server
+from app.observability import setup_observability
 
 # Structured JSON logging
 log_handler = logging.StreamHandler()
@@ -87,6 +88,7 @@ def create_app() -> FastAPI:
         return {"status": "UP", "service": SERVICE_NAME, "tenant": TENANT_ID}
 
     create_tables()
+    setup_observability(app)
     logger.info("Trading Service started", extra={"tenant_id": TENANT_ID, "service": SERVICE_NAME})
     return app
 
