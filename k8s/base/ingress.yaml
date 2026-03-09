@@ -46,9 +46,9 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: position-service
+                name: trading-service
                 port:
-                  number: 8003
+                  number: 8002
           - path: /stocks
             pathType: Prefix
             backend:
