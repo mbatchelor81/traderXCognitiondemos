@@ -6,3 +6,9 @@ pytest
 httpx
 python-json-logger
 httptools
+prometheus-client
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-instrumentation-fastapi
+opentelemetry-exporter-otlp-proto-grpc
+opentelemetry-propagator-b3

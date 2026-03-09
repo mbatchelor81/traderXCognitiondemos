@@ -16,11 +16,22 @@ from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from app.config import (
-    TENANT_ID, TENANT_ALLOWED_SIDES, TENANT_AUTO_SETTLE,
+    TENANT_ALLOWED_SIDES, TENANT_AUTO_SETTLE,
     MIN_TRADE_QUANTITY, MAX_TRADE_QUANTITY,
     ACCOUNT_SERVICE_URL, REFERENCE_DATA_SERVICE_URL, POSITION_SERVICE_URL,
 )
 from app.models.trade import Trade
+
+
+def _trace_headers() -> dict:
+    """Build outbound headers with traceparent propagation."""
+    headers: dict = {}
+    try:
+        from opentelemetry.propagate import inject
+        inject(headers)
+    except ImportError:
+        pass
+    return headers
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +50,7 @@ def _validate_account(account_id: int) -> bool:
         resp = httpx.get(
             f"{ACCOUNT_SERVICE_URL}/account/{account_id}",
             timeout=5.0,
+            headers=_trace_headers(),
         )
         return resp.status_code == 200
     except httpx.RequestError as e:
@@ -52,6 +64,7 @@ def _validate_security(security: str) -> bool:
         resp = httpx.get(
             f"{REFERENCE_DATA_SERVICE_URL}/stocks/{security}",
             timeout=5.0,
+            headers=_trace_headers(),
         )
         return resp.status_code == 200
     except httpx.RequestError as e:
@@ -73,6 +86,7 @@ def _update_position(account_id: int, security: str, side: str, quantity: int,
                 "tenant_id": tenant_id,
             },
             timeout=5.0,
+            headers=_trace_headers(),
         )
         if resp.status_code == 200:
             return resp.json()

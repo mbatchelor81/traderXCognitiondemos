@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trading-service-config
+  namespace: traderx
+data:
+  SERVICE_PORT: "8002"
+  LOG_LEVEL: "INFO"
+  ACCOUNT_SERVICE_URL: "http://account-service:8001"
+  REFERENCE_DATA_SERVICE_URL: "http://reference-data-service:8004"
+  POSITION_SERVICE_URL: "http://position-service:8003"

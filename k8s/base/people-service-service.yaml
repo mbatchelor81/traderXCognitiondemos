@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: people-service
+  namespace: traderx
+  labels:
+    app: people-service
+spec:
+  type: ClusterIP
+  selector:
+    app: people-service
+  ports:
+    - port: 8005
+      targetPort: 8005
+      protocol: TCP

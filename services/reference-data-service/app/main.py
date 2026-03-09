@@ -11,6 +11,7 @@ from pythonjsonlogger import jsonlogger
 from app.config import TENANT_ID, SERVICE_NAME, LOG_LEVEL, CORS_ORIGINS
 from app.routes import stocks
 from app.services.stock_service import load_stocks
+from app.observability import setup_observability
 
 # Structured JSON logging
 log_handler = logging.StreamHandler()
@@ -48,6 +49,7 @@ def create_app() -> FastAPI:
         return {"status": "UP", "service": SERVICE_NAME, "tenant": TENANT_ID}
 
     load_stocks()
+    setup_observability(app)
     logger.info("Reference Data Service started",
                 extra={"tenant_id": TENANT_ID, "service": SERVICE_NAME})
     return app

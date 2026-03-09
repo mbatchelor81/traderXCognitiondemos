@@ -11,6 +11,7 @@ from pythonjsonlogger import jsonlogger
 from app.config import TENANT_ID, SERVICE_NAME, LOG_LEVEL, CORS_ORIGINS
 from app.database import create_tables
 from app.routes import positions
+from app.observability import setup_observability
 
 # Structured JSON logging
 log_handler = logging.StreamHandler()
@@ -48,6 +49,7 @@ def create_app() -> FastAPI:
         return {"status": "UP", "service": SERVICE_NAME, "tenant": TENANT_ID}
 
     create_tables()
+    setup_observability(app)
     logger.info("Position Service started",
                 extra={"tenant_id": TENANT_ID, "service": SERVICE_NAME})
     return app
