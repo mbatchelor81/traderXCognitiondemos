@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import TENANT_ID, SERVICE_NAME, CORS_ORIGINS, SOCKETIO_CORS_ALLOWED, LOG_LEVEL
 from app.middleware import TenantMiddleware
+from app.observability import setup_observability
 from app.routes import trades, positions, reference_data
 from app.services.trade_processor import set_socketio_server
 
@@ -91,6 +92,9 @@ def create_app() -> FastAPI:
 
     # Register Socket.IO with trade_processor
     set_socketio_server(sio)
+
+    # Setup observability (metrics, tracing)
+    setup_observability(app)
 
     logger.info("trades-service created for tenant: %s", TENANT_ID)
     return app
