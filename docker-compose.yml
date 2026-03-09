@@ -1,0 +1,77 @@
+services:
+  people-service:
+    build:
+      context: ./services/people-service
+    ports:
+      - "8005:8005"
+    environment:
+      - TENANT_ID=${TENANT_ID:-acme_corp}
+      - SERVICE_PORT=8005
+      - LOG_LEVEL=INFO
+
+  reference-data-service:
+    build:
+      context: ./services/reference-data-service
+    ports:
+      - "8004:8004"
+    environment:
+      - TENANT_ID=${TENANT_ID:-acme_corp}
+      - SERVICE_PORT=8004
+      - LOG_LEVEL=INFO
+
+  account-service:
+    build:
+      context: ./services/account-service
+    ports:
+      - "8001:8001"
+    environment:
+      - TENANT_ID=${TENANT_ID:-acme_corp}
+      - SERVICE_PORT=8001
+      - PEOPLE_SERVICE_URL=http://people-service:8005
+      - DATABASE_URL=sqlite:////app/data/app_${TENANT_ID:-acme_corp}.db
+      - LOG_LEVEL=INFO
+    depends_on:
+      - people-service
+
+  position-service:
+    build:
+      context: ./services/position-service
+    ports:
+      - "8003:8003"
+    environment:
+      - TENANT_ID=${TENANT_ID:-acme_corp}
+      - SERVICE_PORT=8003
+      - DATABASE_URL=sqlite:////app/data/app_${TENANT_ID:-acme_corp}.db
+      - LOG_LEVEL=INFO
+
+  trading-service:
+    build:
+      context: ./services/trading-service
+    ports:
+      - "8002:8002"
+    environment:
+      - TENANT_ID=${TENANT_ID:-acme_corp}
+      - SERVICE_PORT=8002
+      - ACCOUNT_SERVICE_URL=http://account-service:8001
+      - REFERENCE_DATA_SERVICE_URL=http://reference-data-service:8004
+      - POSITION_SERVICE_URL=http://position-service:8003
+      - DATABASE_URL=sqlite:////app/data/app_${TENANT_ID:-acme_corp}.db
+      - LOG_LEVEL=INFO
+    depends_on:
+      - account-service
+      - reference-data-service
+      - position-service
+
+  web-frontend:
+    build:
+      context: ./web-front-end/react
+      args:
+        REACT_APP_TENANT_ID: ${TENANT_ID:-acme_corp}
+    ports:
+      - "18094:18094"
+    depends_on:
+      - account-service
+      - trading-service
+      - position-service
+      - reference-data-service
+      - people-service
