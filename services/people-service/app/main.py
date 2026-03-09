@@ -11,6 +11,7 @@ from app.config import TENANT_ID, SERVICE_NAME, CORS_ORIGINS, LOG_LEVEL
 from app.middleware import TenantMiddleware
 from app.routes import router
 from app.service import load_people_from_json
+from app.observability import metrics_response, init_tracing
 
 # Structured JSON logging
 log_handler = logging.StreamHandler()
@@ -35,8 +36,13 @@ def create_app() -> FastAPI:
     def health():
         return {"status": "UP", "service": SERVICE_NAME, "tenant": TENANT_ID}
 
+    @app.get("/metrics")
+    def metrics():
+        return metrics_response()
+
     @app.on_event("startup")
     def on_startup():
+        init_tracing()
         load_people_from_json()
         logger.info("People Service started", extra={"tenant_id": TENANT_ID, "service": SERVICE_NAME})
 

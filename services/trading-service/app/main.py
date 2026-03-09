@@ -13,6 +13,7 @@ from app.middleware import TenantMiddleware
 from app.routes import router
 from app.database import create_tables
 from app.service import set_socketio_server
+from app.observability import metrics_response, init_tracing
 
 # Structured JSON logging
 log_handler = logging.StreamHandler()
@@ -66,8 +67,13 @@ def create_app() -> FastAPI:
     def health():
         return {"status": "UP", "service": SERVICE_NAME, "tenant": TENANT_ID}
 
+    @app.get("/metrics")
+    def metrics():
+        return metrics_response()
+
     @app.on_event("startup")
     def on_startup():
+        init_tracing()
         create_tables()
         logger.info("Trading Service started", extra={"tenant_id": TENANT_ID, "service": SERVICE_NAME})
 
