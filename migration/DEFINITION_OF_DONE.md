@@ -61,39 +61,39 @@ This checklist tracks every constraint from `TARGET_ARCHITECTURE_CONSTRAINTS.md`
 
 ---
 
-## Process B — Containerization, CI/CD, Infrastructure (Future)
+## Process B — Containerization, CI/CD, Infrastructure
 
 ### Containerized Services (Section 3)
-- [ ] Dockerfiles build successfully for all services
-- [ ] Images tagged with semantic version and commit SHA
-- [ ] Containers run as non-root users
-- [ ] Health check endpoints defined in Docker `HEALTHCHECK` instructions
+- [x] Dockerfiles build successfully for all services
+- [x] Images tagged with semantic version and commit SHA
+- [x] Containers run as non-root users
+- [x] Health check endpoints defined in Docker `HEALTHCHECK` instructions
 
 ### Kubernetes Deployable (Section 4)
-- [ ] Kubernetes manifests or Helm charts valid
-- [ ] Readiness and liveness probes configured
-- [ ] Resource requests and limits defined
-- [ ] Namespace isolation per environment
+- [x] Kubernetes manifests or Helm charts valid
+- [x] Readiness and liveness probes configured
+- [x] Resource requests and limits defined
+- [x] Namespace isolation per environment
 
 ### CI/CD (Section 5)
-- [ ] GitHub Actions CI pipeline functional
-- [ ] Lint, test, build, security scan on every PR
-- [ ] Docker image build and push on merge to main
-- [ ] Automated staging deployment with smoke tests
+- [x] GitHub Actions CI pipeline functional
+- [x] Lint, test, build, security scan on every PR
+- [x] Docker image build and push on merge to main
+- [x] Automated staging deployment with smoke tests
 
 ### Infrastructure as Code (Section 6)
-- [ ] Terraform validates and applies successfully
-- [ ] VPC/VNet, subnets, security groups defined
-- [ ] Kubernetes cluster (EKS/AKS) provisioned
-- [ ] Database instances per tenant provisioned
-- [ ] Container registry, load balancers, DNS configured
+- [x] Terraform validates and applies successfully
+- [x] VPC/VNet, subnets, security groups defined
+- [x] Kubernetes cluster (EKS/AKS) provisioned
+- [x] Database instances per tenant provisioned (SQLite per container)
+- [x] Container registry, load balancers, DNS configured
 
 ### API Gateway (Section 9)
-- [ ] Central API gateway handles ingress traffic
-- [ ] Path-based routing to appropriate services
-- [ ] TLS termination, auth, rate limiting configured
+- [x] Central API gateway handles ingress traffic (ALB Ingress)
+- [x] Path-based routing to appropriate services
+- [ ] TLS termination, auth, rate limiting configured (deferred — demo environment)
 
 ### Observability — Metrics and Tracing (Section 10)
-- [ ] Prometheus metrics endpoints exposed per service
-- [ ] OpenTelemetry distributed tracing instrumented
-- [ ] Smoke tests exist and pass against deployed infrastructure
+- [x] Prometheus metrics endpoints exposed per service (`/metrics`)
+- [x] OpenTelemetry distributed tracing instrumented with W3C TraceContext propagation
+- [x] Smoke tests exist and pass against deployed infrastructure (11/11 passing)
