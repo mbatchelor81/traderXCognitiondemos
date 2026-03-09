@@ -10,7 +10,7 @@ services:
     environment:
       - TENANT_ID=${TENANT_ID:-acme_corp}
       - DATABASE_URL=sqlite:////app/data/app_users.db
-      - PORT=8001
+      - APP_PORT=8001
       - LOG_LEVEL=INFO
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
@@ -28,7 +28,7 @@ services:
     environment:
       - TENANT_ID=${TENANT_ID:-acme_corp}
       - DATABASE_URL=sqlite:////app/data/app_trades.db
-      - PORT=8002
+      - APP_PORT=8002
       - LOG_LEVEL=INFO
       - USERS_SERVICE_URL=http://users-service:8001
     depends_on:

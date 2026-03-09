@@ -89,7 +89,7 @@ resource "aws_ecs_task_definition" "users_service" {
       ]
       environment = [
         { name = "TENANT_ID", value = var.tenant_id },
-        { name = "PORT", value = tostring(var.users_service_port) },
+        { name = "APP_PORT", value = tostring(var.users_service_port) },
         { name = "LOG_LEVEL", value = "INFO" },
         { name = "DATABASE_URL", value = "sqlite:////app/data/app_users.db" },
         { name = "TRADES_SERVICE_URL", value = "http://${aws_lb.main.dns_name}:80" },
@@ -131,7 +131,7 @@ resource "aws_ecs_task_definition" "trades_service" {
       ]
       environment = [
         { name = "TENANT_ID", value = var.tenant_id },
-        { name = "PORT", value = tostring(var.trades_service_port) },
+        { name = "APP_PORT", value = tostring(var.trades_service_port) },
         { name = "LOG_LEVEL", value = "INFO" },
         { name = "DATABASE_URL", value = "sqlite:////app/data/app_trades.db" },
         { name = "USERS_SERVICE_URL", value = "http://${aws_lb.main.dns_name}:80" },

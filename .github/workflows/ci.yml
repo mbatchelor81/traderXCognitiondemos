@@ -144,15 +144,16 @@ jobs:
             context: services/trades-service
           - name: frontend
             context: web-front-end/react
-            build_args: |
-              REACT_APP_TENANT_ID=acme_corp
-              REACT_APP_API_URL=
     steps:
       - uses: actions/checkout@v4
 
       - name: Build Docker image
         run: |
+          BUILD_ARGS=""
+          if [ "${{ matrix.service.name }}" = "frontend" ]; then
+            BUILD_ARGS="--build-arg REACT_APP_TENANT_ID=acme_corp --build-arg REACT_APP_API_URL="
+          fi
           docker build \
             --tag traderx-${{ matrix.service.name }}:${{ github.sha }} \
-            ${{ matrix.service.build_args && format('--build-arg {0}', join(matrix.service.build_args, ' --build-arg ')) || '' }} \
+            $BUILD_ARGS \
             ${{ matrix.service.context }}
