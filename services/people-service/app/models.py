@@ -8,4 +8,5 @@ class Person(BaseModel):
     FullName: str
     Email: str
     Department: str
-    AvatarUrl: Optional[str] = None
+    EmployeeId: Optional[str] = None
+    PhotoUrl: Optional[str] = None

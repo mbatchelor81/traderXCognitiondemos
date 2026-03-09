@@ -143,7 +143,7 @@ def test_cross_service_trade_flow():
     resp = httpx.get("http://localhost:8004/stocks/AAPL", timeout=5.0)
     assert resp.status_code == 200, f"Stock AAPL not found: {resp.status_code}"
     stock = resp.json()
-    print(f"  Stock found: {stock['Symbol']} - {stock['CompanyName']}")
+    print(f"  Stock found: {stock['ticker']} - {stock['companyName']}")
 
     # 3. Submit a trade via trading-service
     print("Step 3: Submit trade via trading-service...")
