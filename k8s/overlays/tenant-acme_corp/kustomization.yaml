@@ -1,0 +1,68 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: traderx-acme-corp
+
+patches:
+  # Patch TENANT_ID on all deployments
+  - target:
+      kind: Deployment
+      name: account-service
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: "acme_corp"
+  - target:
+      kind: Deployment
+      name: trading-service
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: "acme_corp"
+  - target:
+      kind: Deployment
+      name: position-service
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: "acme_corp"
+  - target:
+      kind: Deployment
+      name: reference-data-service
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: "acme_corp"
+  - target:
+      kind: Deployment
+      name: people-service
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: "acme_corp"
+
+  # Patch database URLs in secrets
+  - target:
+      kind: Secret
+      name: account-service-secret
+    patch: |
+      - op: replace
+        path: /stringData/DATABASE_URL
+        value: "sqlite:////app/data/app_acme_corp.db"
+  - target:
+      kind: Secret
+      name: trading-service-secret
+    patch: |
+      - op: replace
+        path: /stringData/DATABASE_URL
+        value: "sqlite:////app/data/app_acme_corp.db"
+  - target:
+      kind: Secret
+      name: position-service-secret
+    patch: |
+      - op: replace
+        path: /stringData/DATABASE_URL
+        value: "sqlite:////app/data/app_acme_corp.db"

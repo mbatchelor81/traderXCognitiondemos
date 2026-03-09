@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trading-service
+  namespace: traderx
+  labels:
+    app: trading-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trading-service
+  template:
+    metadata:
+      labels:
+        app: trading-service
+    spec:
+      containers:
+        - name: trading-service
+          image: trading-service:latest
+          ports:
+            - containerPort: 8002
+          env:
+            - name: TENANT_ID
+              value: "PLACEHOLDER"
+            - name: ACCOUNT_SERVICE_URL
+              value: "http://account-service:8001"
+            - name: REFERENCE_DATA_SERVICE_URL
+              value: "http://reference-data-service:8004"
+            - name: POSITION_SERVICE_URL
+              value: "http://position-service:8003"
+          envFrom:
+            - configMapRef:
+                name: trading-service-config
+            - secretRef:
+                name: trading-service-secret
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

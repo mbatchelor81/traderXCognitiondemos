@@ -1,0 +1,43 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: traderx
+
+resources:
+  - namespace.yaml
+  # account-service
+  - account-service-deployment.yaml
+  - account-service-service.yaml
+  - account-service-configmap.yaml
+  - account-service-secret.yaml
+  - account-service-hpa.yaml
+  # trading-service
+  - trading-service-deployment.yaml
+  - trading-service-service.yaml
+  - trading-service-configmap.yaml
+  - trading-service-secret.yaml
+  - trading-service-hpa.yaml
+  # position-service
+  - position-service-deployment.yaml
+  - position-service-service.yaml
+  - position-service-configmap.yaml
+  - position-service-secret.yaml
+  - position-service-hpa.yaml
+  # reference-data-service
+  - reference-data-service-deployment.yaml
+  - reference-data-service-service.yaml
+  - reference-data-service-configmap.yaml
+  - reference-data-service-secret.yaml
+  - reference-data-service-hpa.yaml
+  # people-service
+  - people-service-deployment.yaml
+  - people-service-service.yaml
+  - people-service-configmap.yaml
+  - people-service-secret.yaml
+  - people-service-hpa.yaml
+  # web-frontend
+  - web-frontend-deployment.yaml
+  - web-frontend-service.yaml
+  - web-frontend-configmap.yaml
+  - web-frontend-secret.yaml
+  - web-frontend-hpa.yaml
