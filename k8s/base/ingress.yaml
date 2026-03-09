@@ -63,6 +63,13 @@ spec:
                 name: people-service
                 port:
                   number: 8005
+          - path: /socket.io
+            pathType: Prefix
+            backend:
+              service:
+                name: trading-service
+                port:
+                  number: 8002
           - path: /
             pathType: Prefix
             backend:
