@@ -5,4 +5,4 @@
 import '@testing-library/jest-dom';
 
 // Set REACT_APP_TENANT_ID for single-tenant mode in test environment
-process.env.REACT_APP_TENANT_ID = 'test_tenant';
+process.env.REACT_APP_TENANT_ID = 'acme_corp';

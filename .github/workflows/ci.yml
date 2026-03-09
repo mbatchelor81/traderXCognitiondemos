@@ -101,7 +101,7 @@ jobs:
         working-directory: ${{ matrix.service.path }}
         run: |
           npm ci
-          npx react-scripts test --watchAll=false --ci || echo "Tests completed"
+          npx react-scripts test --watchAll=false --ci
 
   security-scan:
     name: Security Scan
