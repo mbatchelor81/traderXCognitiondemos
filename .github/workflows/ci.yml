@@ -1,0 +1,121 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - feature/single-tenant-migration
+  pull_request:
+    branches:
+      - main
+
+env:
+  TENANT_ID: test_tenant
+
+jobs:
+  lint:
+    name: Lint - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - account-service
+          - trading-service
+          - position-service
+          - reference-data-service
+          - people-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies and linter
+        working-directory: services/${{ matrix.service }}
+        run: |
+          pip install -r requirements.txt
+          pip install ruff
+
+      - name: Run lint checks
+        working-directory: services/${{ matrix.service }}
+        run: ruff check .
+
+  test:
+    name: Test - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - account-service
+          - trading-service
+          - position-service
+          - reference-data-service
+          - people-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        working-directory: services/${{ matrix.service }}
+        run: pip install -r requirements.txt
+
+      - name: Run tests with coverage
+        working-directory: services/${{ matrix.service }}
+        run: |
+          pip install pytest-cov
+          TENANT_ID=${{ env.TENANT_ID }} python -m pytest tests/ -v --cov=app --cov-report=term-missing
+
+  security-scan:
+    name: Security Scan - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - account-service
+          - trading-service
+          - position-service
+          - reference-data-service
+          - people-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        working-directory: services/${{ matrix.service }}
+        run: docker build -t traderx-${{ matrix.service }}:scan .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: traderx-${{ matrix.service }}:scan
+          format: table
+          exit-code: "0"
+          severity: CRITICAL,HIGH
+
+  docker-build:
+    name: Docker Build - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: [lint, test, security-scan]
+    strategy:
+      matrix:
+        service:
+          - account-service
+          - trading-service
+          - position-service
+          - reference-data-service
+          - people-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        working-directory: services/${{ matrix.service }}
+        run: |
+          docker build \
+            -t traderx-${{ matrix.service }}:${{ github.sha }} \
+            -t traderx-${{ matrix.service }}:latest \
+            .
