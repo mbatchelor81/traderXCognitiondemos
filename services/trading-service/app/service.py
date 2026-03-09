@@ -7,7 +7,6 @@ from typing import Dict, List
 import httpx
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
-from opentelemetry import trace
 from opentelemetry.propagate import inject
 
 from app.config import (

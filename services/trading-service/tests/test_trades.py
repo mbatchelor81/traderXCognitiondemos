@@ -1,5 +1,4 @@
 """Test Trade operations."""
-import asyncio
 from unittest.mock import patch, AsyncMock
 
 
