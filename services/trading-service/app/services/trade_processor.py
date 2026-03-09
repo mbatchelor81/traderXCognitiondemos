@@ -15,24 +15,23 @@ import httpx
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
+from app.config import (
+    TENANT_ALLOWED_SIDES, TENANT_AUTO_SETTLE,
+    MIN_TRADE_QUANTITY, MAX_TRADE_QUANTITY,
+    ACCOUNT_SERVICE_URL, REFERENCE_DATA_SERVICE_URL, POSITION_SERVICE_URL,
+)
+from app.models.trade import Trade
+
 
 def _trace_headers() -> dict:
     """Build outbound headers with traceparent propagation."""
     headers: dict = {}
     try:
-        from opentelemetry import context, trace
         from opentelemetry.propagate import inject
         inject(headers)
     except ImportError:
         pass
     return headers
-
-from app.config import (
-    TENANT_ID, TENANT_ALLOWED_SIDES, TENANT_AUTO_SETTLE,
-    MIN_TRADE_QUANTITY, MAX_TRADE_QUANTITY,
-    ACCOUNT_SERVICE_URL, REFERENCE_DATA_SERVICE_URL, POSITION_SERVICE_URL,
-)
-from app.models.trade import Trade
 
 logger = logging.getLogger(__name__)
 

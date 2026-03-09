@@ -4,7 +4,7 @@ import logging
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -17,7 +17,6 @@ def _trace_headers() -> dict:
     """Build outbound headers with traceparent propagation."""
     headers: dict = {}
     try:
-        from opentelemetry import context, trace
         from opentelemetry.propagate import inject
         inject(headers)
     except ImportError:
