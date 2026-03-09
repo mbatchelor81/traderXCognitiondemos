@@ -52,11 +52,12 @@ def _now_utc() -> datetime:
 # Trade Validation
 # =============================================================================
 
-def validate_account_exists(account_id: int, tenant_id: str) -> bool:
-    """Validate account exists via HTTP call to users-service."""
+async def validate_account_exists(account_id: int, tenant_id: str) -> bool:
+    """Validate account exists via async HTTP call to users-service."""
     try:
         url = f"{USERS_SERVICE_URL}/account/{account_id}"
-        resp = httpx.get(url, headers={"X-Tenant-ID": tenant_id}, timeout=5.0)
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, headers={"X-Tenant-ID": tenant_id}, timeout=5.0)
         if resp.status_code == 200:
             logger.info("Account %d validated via users-service", account_id)
             return True
@@ -77,9 +78,9 @@ def validate_security_exists(security: str) -> bool:
     return True
 
 
-def validate_trade_request(db: Session, account_id: int, security: str,
-                           side: str, quantity: int,
-                           tenant_id: str) -> Tuple[bool, str]:
+async def validate_trade_request(db: Session, account_id: int, security: str,
+                                  side: str, quantity: int,
+                                  tenant_id: str) -> Tuple[bool, str]:
     """Comprehensive trade validation."""
     if side not in ("Buy", "Sell"):
         return False, f"Invalid trade side: {side}. Must be 'Buy' or 'Sell'."
@@ -88,7 +89,7 @@ def validate_trade_request(db: Session, account_id: int, security: str,
         return False, (f"Invalid trade quantity: {quantity}. "
                        f"Must be between {MIN_TRADE_QUANTITY} and {MAX_TRADE_QUANTITY}.")
 
-    if not validate_account_exists(account_id, tenant_id):
+    if not await validate_account_exists(account_id, tenant_id):
         return False, f"Account {account_id} not found for tenant {tenant_id}."
 
     if not validate_security_exists(security):
@@ -196,7 +197,7 @@ async def process_trade(db: Session, account_id: int, security: str,
     start_time = time.time()
 
     # Validate
-    is_valid, error_msg = validate_trade_request(
+    is_valid, error_msg = await validate_trade_request(
         db, account_id, security, side, quantity, tenant_id
     )
     if not is_valid:
