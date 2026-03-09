@@ -1,0 +1,57 @@
+version: "3.9"
+
+services:
+  people-service:
+    build:
+      context: ./services/people-service
+    ports:
+      - "8005:8005"
+    environment:
+      - TENANT_ID=${TENANT_ID:-test_tenant}
+      - SERVICE_PORT=8005
+
+  reference-data-service:
+    build:
+      context: ./services/reference-data-service
+    ports:
+      - "8004:8004"
+    environment:
+      - TENANT_ID=${TENANT_ID:-test_tenant}
+      - SERVICE_PORT=8004
+
+  account-service:
+    build:
+      context: ./services/account-service
+    ports:
+      - "8001:8001"
+    environment:
+      - TENANT_ID=${TENANT_ID:-test_tenant}
+      - SERVICE_PORT=8001
+      - PEOPLE_SERVICE_URL=http://people-service:8005
+    depends_on:
+      - people-service
+
+  position-service:
+    build:
+      context: ./services/position-service
+    ports:
+      - "8003:8003"
+    environment:
+      - TENANT_ID=${TENANT_ID:-test_tenant}
+      - SERVICE_PORT=8003
+
+  trading-service:
+    build:
+      context: ./services/trading-service
+    ports:
+      - "8002:8002"
+    environment:
+      - TENANT_ID=${TENANT_ID:-test_tenant}
+      - SERVICE_PORT=8002
+      - ACCOUNT_SERVICE_URL=http://account-service:8001
+      - REFERENCE_DATA_SERVICE_URL=http://reference-data-service:8004
+      - POSITION_SERVICE_URL=http://position-service:8003
+    depends_on:
+      - account-service
+      - reference-data-service
+      - position-service
