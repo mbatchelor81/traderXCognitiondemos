@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+python-socketio
+aiohttp
+pydantic
+pytest
+httpx
+python-json-logger

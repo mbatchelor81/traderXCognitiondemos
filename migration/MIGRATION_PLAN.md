@@ -100,10 +100,10 @@ Each service:
 
 | Phase | Description | Status |
 |---|---|---|
-| 1. Migration Documentation | Create migration plan and definition of done | In Progress |
-| 2. Single-Tenant Runtime | Remove multi-tenant logic, require `TENANT_ID` at startup | Planned |
-| 3. Data Isolation | Database-per-tenant using `TENANT_ID` in connection strings | Planned |
-| 4. Service Extraction | Decompose monolith into 5 services under `services/` | Planned |
+| 1. Migration Documentation | Create migration plan and definition of done | Complete |
+| 2. Single-Tenant Runtime | Remove multi-tenant logic, require `TENANT_ID` at startup | Complete |
+| 3. Data Isolation | Database-per-tenant using `TENANT_ID` in connection strings | Complete |
+| 4. Service Extraction | Decompose monolith into 5 services under `services/` | Complete |
 
 ### Process B (Future — Containerization, CI/CD, IaC)
 
