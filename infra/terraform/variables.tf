@@ -29,7 +29,7 @@ variable "trades_service_port" {
 }
 
 variable "frontend_port" {
-  description = "Port for frontend (nginx)"
+  description = "Port for frontend (nginx-unprivileged listens on 8080)"
   type        = number
-  default     = 80
+  default     = 8080
 }

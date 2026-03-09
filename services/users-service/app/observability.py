@@ -71,7 +71,10 @@ def setup_observability(app: FastAPI) -> None:
     @app.middleware("http")
     async def metrics_middleware(request: Request, call_next) -> Response:
         """Record request count, latency, and error rate."""
-        path = request.url.path
+        # Use the route template (e.g. /positions/{accountId}) instead of the
+        # raw path to avoid unbounded Prometheus cardinality.
+        route = request.scope.get("route")
+        path = route.path if route else request.url.path
         method = request.method
 
         # Skip metrics endpoint itself
