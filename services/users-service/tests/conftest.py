@@ -12,7 +12,7 @@ from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
 
 from app.database import Base, get_db
-from app.main import app
+from app.main import fastapi_app as app
 
 TEST_DATABASE_URL = "sqlite:///:memory:"
 

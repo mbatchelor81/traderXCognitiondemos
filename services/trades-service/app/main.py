@@ -12,13 +12,14 @@ from app.config import TENANT_ID, SERVICE_NAME, CORS_ORIGINS, SOCKETIO_CORS_ALLO
 from app.middleware import TenantMiddleware
 from app.routes import trades, positions, reference_data
 from app.services.trade_processor import set_socketio_server
+from app.observability import metrics_endpoint, MetricsMiddleware, init_tracing
 
-# Structured JSON logging
+# Structured JSON logging with correlation_id field
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
     format='{"timestamp":"%(asctime)s","level":"%(levelname)s","service":"'
            + SERVICE_NAME + '","tenant_id":"' + TENANT_ID
-           + '","logger":"%(name)s","message":"%(message)s"}',
+           + '","logger":"%(name)s","correlation_id":"","message":"%(message)s"}',
 )
 logger = logging.getLogger(__name__)
 
@@ -85,6 +86,9 @@ def create_app() -> FastAPI:
     app.include_router(positions.router, tags=["Positions"])
     app.include_router(reference_data.router, tags=["Reference Data"])
 
+    # Prometheus metrics endpoint
+    app.add_api_route("/metrics", metrics_endpoint, methods=["GET"], tags=["Observability"])
+
     @app.get("/health")
     def health():
         return {"status": "UP", "service": SERVICE_NAME, "tenant": TENANT_ID}
@@ -92,11 +96,17 @@ def create_app() -> FastAPI:
     # Register Socket.IO with trade_processor
     set_socketio_server(sio)
 
+    # Initialize OpenTelemetry tracing
+    init_tracing(app)
+
     logger.info("trades-service created for tenant: %s", TENANT_ID)
     return app
 
 
 fastapi_app = create_app()
 
+# Wrap with metrics middleware (ASGI-level for accurate timing)
+_metrics_app = MetricsMiddleware(fastapi_app)
+
 # Wrap FastAPI with Socket.IO ASGI app
-app = socketio.ASGIApp(sio, other_asgi_app=fastapi_app)
+app = socketio.ASGIApp(sio, other_asgi_app=_metrics_app)

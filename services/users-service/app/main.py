@@ -11,13 +11,14 @@ from app.config import TENANT_ID, SERVICE_NAME, CORS_ORIGINS, LOG_LEVEL
 
 from app.middleware import TenantMiddleware
 from app.routes import accounts, people
+from app.observability import metrics_endpoint, MetricsMiddleware, init_tracing
 
-# Structured JSON logging
+# Structured JSON logging with correlation_id field
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
     format='{"timestamp":"%(asctime)s","level":"%(levelname)s","service":"'
            + SERVICE_NAME + '","tenant_id":"' + TENANT_ID
-           + '","logger":"%(name)s","message":"%(message)s"}',
+           + '","logger":"%(name)s","correlation_id":"","message":"%(message)s"}',
 )
 logger = logging.getLogger(__name__)
 
@@ -52,12 +53,21 @@ def create_app() -> FastAPI:
     app.include_router(accounts.router, tags=["Accounts"])
     app.include_router(people.router, tags=["People"])
 
+    # Prometheus metrics endpoint
+    app.add_api_route("/metrics", metrics_endpoint, methods=["GET"], tags=["Observability"])
+
     @app.get("/health")
     def health():
         return {"status": "UP", "service": SERVICE_NAME, "tenant": TENANT_ID}
+
+    # Initialize OpenTelemetry tracing
+    init_tracing(app)
 
     logger.info("users-service created for tenant: %s", TENANT_ID)
     return app
 
 
-app = create_app()
+fastapi_app = create_app()
+
+# Wrap with metrics middleware (ASGI-level for accurate timing)
+app = MetricsMiddleware(fastapi_app)
