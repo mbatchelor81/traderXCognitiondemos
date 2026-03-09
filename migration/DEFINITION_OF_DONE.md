@@ -7,57 +7,57 @@ This checklist tracks every constraint from `TARGET_ARCHITECTURE_CONSTRAINTS.md`
 ## Process A — Single-Tenant Migration and Service Extraction
 
 ### Single-Tenant Isolation (Section 1)
-- [ ] App runs in single-tenant mode only — no runtime tenant switching
-- [ ] Tenant chosen at startup via `TENANT_ID` environment variable
-- [ ] Application crashes immediately if `TENANT_ID` is not set
-- [ ] Requests with mismatched `X-Tenant-ID` header rejected with HTTP 403
-- [ ] No shared in-memory state (`CURRENT_TENANT`, `_runtime_state`, `KNOWN_TENANTS` removed)
-- [ ] Tenant-specific business rules loaded for current tenant only at startup
-- [ ] Frontend uses build-time `REACT_APP_TENANT_ID` — no mutable tenant state
+- [x] App runs in single-tenant mode only — no runtime tenant switching
+- [x] Tenant chosen at startup via `TENANT_ID` environment variable
+- [x] Application crashes immediately if `TENANT_ID` is not set
+- [x] Requests with mismatched `X-Tenant-ID` header rejected with HTTP 403
+- [x] No shared in-memory state (`CURRENT_TENANT`, `_runtime_state`, `KNOWN_TENANTS` removed)
+- [x] Tenant-specific business rules loaded for current tenant only at startup
+- [x] Frontend uses build-time `REACT_APP_TENANT_ID` — no mutable tenant state
 
 ### Database-per-Tenant (Section 2)
-- [ ] Data isolation implemented — each tenant gets its own database
-- [ ] Database connection string incorporates `TENANT_ID`
-- [ ] `DATABASE_URL` environment variable overridable for production
-- [ ] `tenant_id` column no longer needed for row-level filtering
-- [ ] Cross-tenant queries impossible by design
+- [x] Data isolation implemented — each tenant gets its own database
+- [x] Database connection string incorporates `TENANT_ID`
+- [x] `DATABASE_URL` environment variable overridable for production
+- [x] `tenant_id` column no longer needed for row-level filtering
+- [x] Cross-tenant queries impossible by design
 
 ### Service Boundaries (Section 7)
-- [ ] Domain services extracted per service boundary table in `TARGET_ARCHITECTURE_CONSTRAINTS.md`
-- [ ] Account Service extracted — account CRUD, account user management
-- [ ] Trading Service extracted — trade submission, validation, state machine
-- [ ] Position Service extracted — position tracking, queries
-- [ ] Reference Data Service extracted — stock ticker lookup
-- [ ] People Service extracted — person directory, validation
-- [ ] Each service owns its own data store (no shared database)
-- [ ] Each service can be developed, deployed, and scaled independently
+- [x] Domain services extracted per service boundary table in `TARGET_ARCHITECTURE_CONSTRAINTS.md`
+- [x] Account Service extracted — account CRUD, account user management
+- [x] Trading Service extracted — trade submission, validation, state machine
+- [x] Position Service extracted — position tracking, queries
+- [x] Reference Data Service extracted — stock ticker lookup
+- [x] People Service extracted — person directory, validation
+- [x] Each service owns its own data store (no shared database)
+- [x] Each service can be developed, deployed, and scaled independently
 
 ### No Cross-Service Database Access (Section 8)
-- [ ] Cross-service communication uses HTTP APIs only (no shared DB access)
-- [ ] No circular dependencies between services — dependency graph is a DAG
-- [ ] Trade Service validates accounts via Account Service API (not direct DB query)
-- [ ] Trade Service validates securities via Reference Data Service API (not CSV load)
+- [x] Cross-service communication uses HTTP APIs only (no shared DB access)
+- [x] No circular dependencies between services — dependency graph is a DAG
+- [x] Trade Service validates accounts via Account Service API (not direct DB query)
+- [x] Trade Service validates securities via Reference Data Service API (not CSV load)
 
 ### API Contracts
-- [ ] Each service has a `/health` endpoint returning `{"status": "UP", "service": "<name>", "tenant": "<TENANT_ID>"}`
-- [ ] Each service has an OpenAPI spec accessible at `/docs`
+- [x] Each service has a `/health` endpoint returning `{"status": "UP", "service": "<name>", "tenant": "<TENANT_ID>"}`
+- [x] Each service has an OpenAPI spec accessible at `/docs`
 
 ### Observability (Section 10)
-- [ ] Structured JSON logging with `tenant_id` and `service` fields
-- [ ] Logs include correlation IDs
+- [x] Structured JSON logging with `tenant_id` and `service` fields
+- [x] Logs include correlation IDs
 
 ### Graceful Shutdown
-- [ ] Each service handles `SIGTERM` gracefully — drains in-flight requests
+- [x] Each service handles `SIGTERM` gracefully — drains in-flight requests
 
 ### Testing
-- [ ] Each service has its own test suite
-- [ ] All service test suites pass with `TENANT_ID` set
-- [ ] Integration test script exists and passes (cross-service HTTP calls)
+- [x] Each service has its own test suite
+- [x] All service test suites pass with `TENANT_ID` set
+- [x] Integration test script exists and passes (cross-service HTTP calls)
 
 ### Frontend
-- [ ] Frontend API URLs point at extracted service ports
-- [ ] No tenant selector dropdown in UI
-- [ ] No `TenantContext`, `fetchWithTenant`, or socket reconnect on tenant change
+- [x] Frontend API URLs point at extracted service ports
+- [x] No tenant selector dropdown in UI
+- [x] No `TenantContext`, `fetchWithTenant`, or socket reconnect on tenant change
 
 ---
 
