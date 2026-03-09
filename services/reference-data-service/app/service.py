@@ -22,8 +22,8 @@ def load_stocks_from_csv() -> None:
             ticker = row.get("Symbol", row.get("symbol", "")).strip()
             if ticker:
                 _stocks[ticker] = {
-                    "Symbol": ticker,
-                    "CompanyName": row.get("Security", row.get("Name", row.get("CompanyName", ""))),
+                    "ticker": ticker,
+                    "companyName": row.get("Security", row.get("Name", row.get("CompanyName", ""))),
                     "Sector": row.get("GICS Sector", row.get("Sector", "")),
                 }
     logger.info("Loaded %d stocks from CSV", len(_stocks))

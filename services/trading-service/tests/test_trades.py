@@ -1,5 +1,6 @@
 """Test Trade operations."""
-from unittest.mock import patch
+import asyncio
+from unittest.mock import patch, AsyncMock
 
 
 def test_list_trades_empty(client):
@@ -8,8 +9,8 @@ def test_list_trades_empty(client):
     assert response.json() == []
 
 
-@patch("app.service.validate_account_exists", return_value=True)
-@patch("app.service.validate_security_exists", return_value=True)
+@patch("app.service.validate_account_exists", new_callable=AsyncMock, return_value=True)
+@patch("app.service.validate_security_exists", new_callable=AsyncMock, return_value=True)
 def test_submit_trade(mock_security, mock_account, client):
     response = client.post("/trade/", json={
         "accountId": 1,
@@ -25,8 +26,8 @@ def test_submit_trade(mock_security, mock_account, client):
     assert data["trade"]["state"] == "Settled"
 
 
-@patch("app.service.validate_account_exists", return_value=True)
-@patch("app.service.validate_security_exists", return_value=True)
+@patch("app.service.validate_account_exists", new_callable=AsyncMock, return_value=True)
+@patch("app.service.validate_security_exists", new_callable=AsyncMock, return_value=True)
 def test_submit_trade_creates_position(mock_security, mock_account, client):
     response = client.post("/trade/", json={
         "accountId": 1,
@@ -49,7 +50,7 @@ def test_submit_trade_invalid_side(client):
     assert response.status_code == 400
 
 
-@patch("app.service.validate_account_exists", return_value=False)
+@patch("app.service.validate_account_exists", new_callable=AsyncMock, return_value=False)
 def test_submit_trade_account_not_found(mock_account, client):
     response = client.post("/trade/", json={
         "accountId": 999,

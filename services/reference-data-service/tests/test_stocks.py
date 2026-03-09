@@ -6,15 +6,15 @@ def test_list_stocks(client):
     assert response.status_code == 200
     data = response.json()
     assert len(data) > 0
-    assert "Symbol" in data[0]
-    assert "CompanyName" in data[0]
+    assert "ticker" in data[0]
+    assert "companyName" in data[0]
 
 
 def test_get_stock_by_ticker(client):
     response = client.get("/stocks/AAPL")
     assert response.status_code == 200
     data = response.json()
-    assert data["Symbol"] == "AAPL"
+    assert data["ticker"] == "AAPL"
 
 
 def test_get_stock_not_found(client):

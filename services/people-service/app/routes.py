@@ -17,8 +17,8 @@ def get_person_endpoint(LogonId: str = Query(...)):
 
 
 @router.get("/people/GetMatchingPeople")
-def get_matching_people_endpoint(Search: str = Query(...)):
-    results = get_matching_people(Search)
+def get_matching_people_endpoint(SearchText: str = Query(...)):
+    results = get_matching_people(SearchText)
     return [p.model_dump() for p in results]
 
 

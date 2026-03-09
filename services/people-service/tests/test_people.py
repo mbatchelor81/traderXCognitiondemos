@@ -15,7 +15,7 @@ def test_get_person_not_found(client):
 
 
 def test_get_matching_people(client):
-    response = client.get("/people/GetMatchingPeople", params={"Search": "smith"})
+    response = client.get("/people/GetMatchingPeople", params={"SearchText": "smith"})
     assert response.status_code == 200
     data = response.json()
     assert len(data) > 0
@@ -36,5 +36,5 @@ def test_validate_person_invalid(client):
 
 
 def test_tenant_mismatch_rejected(client):
-    response = client.get("/people/GetMatchingPeople", params={"Search": "test"}, headers={"X-Tenant-ID": "wrong_tenant"})
+    response = client.get("/people/GetMatchingPeople", params={"SearchText": "test"}, headers={"X-Tenant-ID": "wrong_tenant"})
     assert response.status_code == 403

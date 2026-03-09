@@ -26,21 +26,23 @@ def set_socketio_server(sio):
     logger.info("Socket.io server reference set in trading service")
 
 
-def validate_account_exists(account_id: int) -> bool:
+async def validate_account_exists(account_id: int) -> bool:
     """Validate account exists via Account Service HTTP call."""
     try:
-        resp = httpx.get(f"{ACCOUNT_SERVICE_URL}/account/{account_id}", timeout=5.0)
-        return resp.status_code == 200
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{ACCOUNT_SERVICE_URL}/account/{account_id}", timeout=5.0)
+            return resp.status_code == 200
     except httpx.RequestError as e:
         logger.warning("Account service unavailable: %s", str(e))
         return False
 
 
-def validate_security_exists(security: str) -> bool:
+async def validate_security_exists(security: str) -> bool:
     """Validate security exists via Reference Data Service HTTP call."""
     try:
-        resp = httpx.get(f"{REFERENCE_DATA_SERVICE_URL}/stocks/{security}", timeout=5.0)
-        return resp.status_code == 200
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{REFERENCE_DATA_SERVICE_URL}/stocks/{security}", timeout=5.0)
+            return resp.status_code == 200
     except httpx.RequestError as e:
         logger.warning("Reference data service unavailable: %s", str(e))
         return False
@@ -77,10 +79,10 @@ async def process_trade(db: Session, account_id: int, security: str,
     if not (MIN_TRADE_QUANTITY <= quantity <= MAX_TRADE_QUANTITY):
         return {"success": False, "error": f"Invalid quantity: {quantity}", "trade": None, "position": None}
 
-    if not validate_account_exists(account_id):
+    if not await validate_account_exists(account_id):
         return {"success": False, "error": f"Account {account_id} not found", "trade": None, "position": None}
 
-    if not validate_security_exists(security):
+    if not await validate_security_exists(security):
         return {"success": False, "error": f"Security {security} not found", "trade": None, "position": None}
 
     trade = Trade(
