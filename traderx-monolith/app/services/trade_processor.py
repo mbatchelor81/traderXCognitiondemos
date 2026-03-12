@@ -474,7 +474,7 @@ async def process_trade(db: Session, account_id: int, security: str,
         )
 
     # Commit all changes to the database.
-    # On failure the trade is moved to the Cancelled terminal state.
+    # On failure the transaction is rolled back and no records are persisted.
     try:
         db.commit()
         db.refresh(trade)
