@@ -362,6 +362,25 @@ async def publish_trade_and_position(trade: Trade, position: Position):
 # Core Trade Processing (the heart of the god service)
 # =============================================================================
 
+
+def _calculate_quantity_delta(side: str, quantity: int) -> int:
+    """Calculate the signed position delta for a trade.
+
+    Buy trades increase the position (positive delta), while Sell trades
+    decrease the position (negative delta).
+
+    Args:
+        side: The trade side, either 'Buy' or 'Sell'.
+        quantity: The unsigned trade quantity.
+
+    Returns:
+        A signed integer representing the position change.
+    """
+    if side == "Buy":
+        return quantity
+    return -quantity
+
+
 async def process_trade(db: Session, account_id: int, security: str,
                         side: str, quantity: int,
                         tenant_id: str) -> Dict:
@@ -380,11 +399,13 @@ async def process_trade(db: Session, account_id: int, security: str,
     start_time = time.time()
     logger.info("=" * 60)
     logger.info("PROCESSING TRADE ORDER")
-    logger.info("Account: %d | Security: %s | Side: %s | Qty: %d | Tenant: %s",
-                account_id, security, side, quantity, tenant_id)
+    logger.info(
+        "Account: %d | Security: %s | Side: %s | Qty: %d | Tenant: %s",
+        account_id, security, side, quantity, tenant_id,
+    )
     logger.info("=" * 60)
 
-    # Step 1: Validate
+    # Step 1: Validate the incoming trade request against business rules
     is_valid, error_msg = validate_trade_request(
         db, account_id, security, side, quantity, tenant_id
     )
@@ -397,7 +418,8 @@ async def process_trade(db: Session, account_id: int, security: str,
             "position": None,
         }
 
-    # Step 2: Create trade record
+    # Step 2: Create trade record in the initial "New" state.
+    # State machine: -> New (entry point for every trade)
     trade = Trade(
         tenant_id=tenant_id,
         account_id=account_id,
@@ -416,7 +438,8 @@ async def process_trade(db: Session, account_id: int, security: str,
 
     logger.info("Trade created with ID: %d", trade.id)
 
-    # Step 3: Transition to Processing
+    # Step 3: Transition New -> Processing.
+    # State machine: New -> Processing (trade is now being executed)
     if not transition_trade_state(db, trade, "Processing"):
         logger.error("Failed to transition trade %d to Processing", trade.id)
         return {
@@ -426,56 +449,85 @@ async def process_trade(db: Session, account_id: int, security: str,
             "position": None,
         }
 
-    # Step 4: Calculate position delta and update
-    quantity_delta = quantity if side == "Buy" else -quantity
+    # Step 4: Calculate the signed position delta and update the position.
+    # Buy orders increase the position; Sell orders decrease it.
+    quantity_delta = _calculate_quantity_delta(side, quantity)
     position = update_position(db, account_id, security, quantity_delta, tenant_id)
 
-    # Step 5: Check tenant auto-settle config
+    # Step 5: Check tenant auto-settle configuration.
+    # State machine: Processing -> Settled (terminal success state)
     auto_settle = TENANT_AUTO_SETTLE.get(tenant_id, True)
 
     if auto_settle:
-        # Transition to Settled
+        # Transition Processing -> Settled for tenants with auto-settle enabled
         if not transition_trade_state(db, trade, "Settled"):
             logger.error("Failed to transition trade %d to Settled", trade.id)
         else:
-            logger.info("Trade %d auto-settled for tenant %s",
-                        trade.id, tenant_id)
+            logger.info(
+                "Trade %d auto-settled for tenant %s", trade.id, tenant_id,
+            )
     else:
-        logger.info("Trade %d left in Processing state — "
-                     "auto-settle disabled for tenant %s", trade.id, tenant_id)
+        # Trade stays in Processing until an external process settles it
+        logger.info(
+            "Trade %d left in Processing state — auto-settle disabled for tenant %s",
+            trade.id, tenant_id,
+        )
 
-    # Commit all changes
-    db.commit()
-    db.refresh(trade)
-    db.refresh(position)
+    # Commit all changes to the database.
+    # On failure the trade is moved to the Cancelled terminal state.
+    try:
+        db.commit()
+        db.refresh(trade)
+        db.refresh(position)
+    except Exception as exc:
+        logger.error(
+            "Database commit failed for trade %d: %s", trade.id, exc,
+        )
+        db.rollback()
+        # State machine: * -> Cancelled (terminal failure state)
+        trade.state = "Cancelled"
+        trade.updated = now_utc()
+        try:
+            db.commit()
+        except Exception as rollback_exc:
+            logger.error(
+                "Failed to cancel trade %d after commit error: %s",
+                trade.id, rollback_exc,
+            )
+        return {
+            "success": False,
+            "error": "Database commit failed",
+            "trade": trade.to_dict(),
+            "position": None,
+        }
 
-    # Step 6: Publish Socket.io events
+    # Step 6: Publish Socket.io events for real-time UI updates
     try:
         await publish_trade_and_position(trade, position)
     except Exception as e:
-        logger.error("Error publishing Socket.io events: %s", str(e))
+        logger.error("Error publishing Socket.io events: %s", e)
 
     # Step 7: Update runtime stats
     update_runtime_state("total_trades_processed",
                          get_runtime_state()["total_trades_processed"] + 1)
     update_runtime_state("last_trade_timestamp", now_utc().isoformat())
 
-    # Log final audit
+    # Log final audit trail entry
     elapsed_ms = (time.time() - start_time) * 1000
     log_trade_event(trade.id, account_id, "COMPLETED", tenant_id,
                     f"elapsed_ms={elapsed_ms:.2f} final_state={trade.state}")
 
-    logger.info("Trade processing complete: trade_id=%d state=%s elapsed=%.2fms",
-                trade.id, trade.state, elapsed_ms)
+    logger.info(
+        "Trade processing complete: trade_id=%d state=%s elapsed=%.2fms",
+        trade.id, trade.state, elapsed_ms,
+    )
 
-    result = {
+    return {
         "success": True,
         "error": None,
         "trade": trade.to_dict(),
         "position": position.to_dict(),
     }
-
-    return result
 
 
 # =============================================================================
