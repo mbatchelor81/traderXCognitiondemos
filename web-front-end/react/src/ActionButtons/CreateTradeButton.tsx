@@ -99,6 +99,7 @@ export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
 			<Button
 				onClick={handleOpen}
 				variant="contained"
+				disabled={!accountId}
 				startIcon={<AddIcon />}
 				size="small"
 				sx={{
