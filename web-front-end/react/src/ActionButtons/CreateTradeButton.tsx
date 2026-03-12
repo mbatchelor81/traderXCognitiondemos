@@ -29,6 +29,7 @@ export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
 	const [side, setSide] = useState<Side>(undefined);
 	const [security, setSecurity] = useState<string>('');
 	const [quantity, setQuantity] = useState<string>('');
+	const [quantityTouched, setQuantityTouched] = useState(false);
 	const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
 		open: false,
 		message: '',
@@ -40,6 +41,7 @@ export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
 		setSide(undefined);
 		setSecurity('');
 		setQuantity('');
+		setQuantityTouched(false);
 		setLoading(true);
 		try {
 			const response = await fetchWithTenant(`${Environment.reference_data_url}/stocks`);
@@ -67,7 +69,7 @@ export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
 				body: JSON.stringify({
 					id: `TRADE-${tradeId}`,
 					security,
-					quantity: parseInt(quantity),
+					quantity: Number(quantity),
 					accountId,
 					side,
 				}),
@@ -92,7 +94,15 @@ export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
 		[]
 	);
 
-	const isFormValid = security && quantity && parseInt(quantity) > 0 && side;
+	const getQuantityError = (value: string): string => {
+		if (value === '') return 'Quantity is required';
+		const parsed = Number(value);
+		if (!Number.isInteger(parsed) || parsed <= 0) return 'Quantity must be a positive integer greater than 0';
+		return '';
+	};
+
+	const quantityError = quantityTouched ? getQuantityError(quantity) : '';
+	const isFormValid = !!security && !getQuantityError(quantity) && !!side;
 
 	return (
 		<>
@@ -171,9 +181,15 @@ export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
 									type="number"
 									label="Quantity"
 									value={quantity}
-									onChange={(e) => setQuantity(e.target.value)}
+									onChange={(e) => {
+										setQuantity(e.target.value);
+										setQuantityTouched(true);
+									}}
+									onBlur={() => setQuantityTouched(true)}
 									fullWidth
-									inputProps={{ min: 1 }}
+									inputProps={{ min: 1, step: 1 }}
+									error={!!quantityError}
+									helperText={quantityError}
 								/>
 							</Grid>
 							<Grid item xs={12} sm={6}>
