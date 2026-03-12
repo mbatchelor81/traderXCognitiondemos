@@ -112,10 +112,11 @@ export const Datatable = () => {
 	const [positionRowData, setPositionRowData] = useState<PositionData[]>([]);
 	const [selectedId, setSelectedId] = useState<number>(0);
 	const [currentAccount, setCurrentAccount] = useState<string>('');
+	const [summaryRefresh, setSummaryRefresh] = useState<number>(0);
 
 	const positionData = GetPositions(selectedId);
 	const tradeData = GetTrades(selectedId);
-	const summaryStats = GetAccountSummary(selectedId);
+	const summaryStats = GetAccountSummary(selectedId, summaryRefresh);
 
 	// Reset selection when tenant changes
 	useEffect(() => {
@@ -157,14 +158,15 @@ export const Datatable = () => {
 		if (event.target.value) {
 			socketModule.socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/trades`);
 			socketModule.socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/positions`);
-			socketModule.socket.on(PUBLISH, (data: { topic: string; payload: TradeData | PositionData }) => {
-				if (data.topic === `/accounts/${event.target.value}/trades`) {
-					setTradeRowData((current: TradeData[]) => [...current, data.payload as TradeData]);
-				}
-				if (data.topic === `/accounts/${event.target.value}/positions`) {
-					setPositionRowData((current: PositionData[]) => [...current, data.payload as PositionData]);
-				}
-			});
+				socketModule.socket.on(PUBLISH, (data: { topic: string; payload: TradeData | PositionData }) => {
+					if (data.topic === `/accounts/${event.target.value}/trades`) {
+						setTradeRowData((current: TradeData[]) => [...current, data.payload as TradeData]);
+						setSummaryRefresh((c) => c + 1);
+					}
+					if (data.topic === `/accounts/${event.target.value}/positions`) {
+						setPositionRowData((current: PositionData[]) => [...current, data.payload as PositionData]);
+					}
+				});
 		}
 	}, [selectedId]);
 
