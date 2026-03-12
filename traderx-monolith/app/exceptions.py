@@ -23,3 +23,8 @@ class AccountNotFoundError(TradeValidationError):
 class InvalidTradeQuantityError(TradeValidationError):
     """Raised when the trade quantity is outside the allowed range."""
     pass
+
+
+class SecurityNotFoundError(TradeValidationError):
+    """Raised when the trade references a non-existent security/ticker."""
+    pass

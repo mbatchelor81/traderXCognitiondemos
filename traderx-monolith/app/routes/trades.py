@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.config import *  # noqa: F401,F403 — intentional global config import
 from app.database import get_db
-from app.exceptions import AccountNotFoundError, InvalidTradeQuantityError
+from app.exceptions import AccountNotFoundError, InvalidTradeQuantityError, SecurityNotFoundError
 from app.models.trade import Trade
 from app.services import trade_processor
 from app.utils.helpers import get_tenant_from_request
@@ -69,6 +69,8 @@ async def submit_trade(body: TradeOrderRequest, request: Request,
         raise HTTPException(status_code=404, detail=exc.message)
     except InvalidTradeQuantityError as exc:
         raise HTTPException(status_code=422, detail=exc.message)
+    except SecurityNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=exc.message)
 
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["error"])

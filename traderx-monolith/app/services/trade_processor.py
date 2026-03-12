@@ -33,7 +33,7 @@ from app.database import SessionLocal
 from app.models.account import Account, AccountUser
 from app.models.trade import Trade
 from app.models.position import Position
-from app.exceptions import AccountNotFoundError, InvalidTradeQuantityError
+from app.exceptions import AccountNotFoundError, InvalidTradeQuantityError, SecurityNotFoundError
 from app.utils.helpers import (
     find_stock_by_ticker,
     load_stocks_from_csv,
@@ -161,7 +161,7 @@ def validate_trade_request(db: Session, account_id: int, security: str,
     if not validate_security_exists(security):
         error = f"Security {security} not found in reference data."
         logger.error(error)
-        return False, error
+        raise SecurityNotFoundError(error)
 
     # Tenant-specific validation rules
     tenant_sides = TENANT_ALLOWED_SIDES.get(tenant_id, ["Buy", "Sell"])
