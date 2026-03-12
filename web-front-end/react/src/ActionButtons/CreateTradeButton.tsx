@@ -69,7 +69,7 @@ export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
 				body: JSON.stringify({
 					id: `TRADE-${tradeId}`,
 					security,
-					quantity: parseInt(quantity),
+					quantity: Number(quantity),
 					accountId,
 					side,
 				}),
