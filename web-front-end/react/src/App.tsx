@@ -165,7 +165,7 @@ function App() {
                   </IconButton>
                 </Tooltip>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography variant="caption" sx={{ color: isDark ? '#6b7280' : '#6b7280', fontWeight: 500 }}>
+                  <Typography variant="caption" sx={{ color: isDark ? '#6b7280' : '#4b5563', fontWeight: 500 }}>
                     TENANT
                   </Typography>
                   <TenantSelector />
