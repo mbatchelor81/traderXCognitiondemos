@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.config import *  # noqa: F401,F403 — intentional global config import
 from app.models.account import Account, AccountUser
+from app.models.position import Position
 from app.utils.helpers import log_audit_event
 
 logger = logging.getLogger(__name__)
@@ -154,3 +155,30 @@ def can_delete_account(db: Session, account_id: int, tenant_id: str) -> bool:
     """Check if an account can be deleted (no trades associated)."""
     trade_count = get_trade_count_for_account(db, account_id, tenant_id)
     return trade_count == 0
+
+
+# =============================================================================
+# Account Summary (aggregation)
+# =============================================================================
+
+def get_account_summary(db: Session, account_id: int, tenant_id: str) -> Optional[dict]:
+    """
+    Return a combined view of account details, positions, and trade count.
+    Aggregates data that would otherwise require multiple API calls.
+    """
+    account = get_account_by_id(db, account_id, tenant_id)
+    if account is None:
+        return None
+
+    positions = db.query(Position).filter(
+        Position.account_id == account_id,
+        Position.tenant_id == tenant_id,
+    ).all()
+
+    trade_count = get_trade_count_for_account(db, account_id, tenant_id)
+
+    return {
+        **account.to_dict(),
+        "positions": [p.to_dict() for p in positions],
+        "tradeCount": trade_count,
+    }
