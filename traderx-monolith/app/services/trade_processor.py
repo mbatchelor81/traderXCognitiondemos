@@ -480,24 +480,14 @@ async def process_trade(db: Session, account_id: int, security: str,
         db.refresh(trade)
         db.refresh(position)
     except Exception as exc:
-        logger.error(
-            "Database commit failed for trade %d: %s", trade.id, exc,
-        )
+        logger.error("Database commit failed for trade: %s", exc)
         db.rollback()
-        # State machine: * -> Cancelled (terminal failure state)
-        trade.state = "Cancelled"
-        trade.updated = now_utc()
-        try:
-            db.commit()
-        except Exception as rollback_exc:
-            logger.error(
-                "Failed to cancel trade %d after commit error: %s",
-                trade.id, rollback_exc,
-            )
+        # After rollback the trade object is detached (never persisted),
+        # so we cannot update its state or call to_dict(). Return None.
         return {
             "success": False,
             "error": "Database commit failed",
-            "trade": trade.to_dict(),
+            "trade": None,
             "position": None,
         }
 
