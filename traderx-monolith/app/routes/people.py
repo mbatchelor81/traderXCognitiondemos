@@ -8,7 +8,7 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
-from app.config import *  # noqa: F401,F403 — intentional global config import
+from app.config import TENANT_ID
 from app.services import people_service
 
 logger = logging.getLogger(__name__)

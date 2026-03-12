@@ -1,0 +1,79 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: traderx-ingress
+  namespace: traderx
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /account
+            pathType: Prefix
+            backend:
+              service:
+                name: account-service
+                port:
+                  number: 8001
+          - path: /accountuser
+            pathType: Prefix
+            backend:
+              service:
+                name: account-service
+                port:
+                  number: 8001
+          - path: /trade
+            pathType: Prefix
+            backend:
+              service:
+                name: trading-service
+                port:
+                  number: 8002
+          - path: /trades
+            pathType: Prefix
+            backend:
+              service:
+                name: trading-service
+                port:
+                  number: 8002
+          - path: /positions
+            pathType: Prefix
+            backend:
+              service:
+                name: position-service
+                port:
+                  number: 8003
+          - path: /stocks
+            pathType: Prefix
+            backend:
+              service:
+                name: reference-data-service
+                port:
+                  number: 8004
+          - path: /people
+            pathType: Prefix
+            backend:
+              service:
+                name: people-service
+                port:
+                  number: 8005
+          - path: /socket.io
+            pathType: Prefix
+            backend:
+              service:
+                name: trading-service
+                port:
+                  number: 8002
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web-frontend
+                port:
+                  number: 18094

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reference-data-service-config
+  namespace: traderx
+data:
+  SERVICE_PORT: "8004"
+  LOG_LEVEL: "INFO"

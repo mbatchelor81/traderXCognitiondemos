@@ -12,7 +12,7 @@ from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
-from app.config import *  # noqa: F401,F403 — intentional global config import
+from app.config import TENANT_ID
 from app.models.account import Account, AccountUser
 from app.utils.helpers import log_audit_event
 

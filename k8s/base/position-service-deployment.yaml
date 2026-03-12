@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: position-service
+  namespace: traderx
+  labels:
+    app: position-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: position-service
+  template:
+    metadata:
+      labels:
+        app: position-service
+    spec:
+      containers:
+        - name: position-service
+          image: position-service:latest
+          ports:
+            - containerPort: 8003
+          env:
+            - name: TENANT_ID
+              value: "PLACEHOLDER"
+          envFrom:
+            - configMapRef:
+                name: position-service-config
+            - secretRef:
+                name: position-service-secret
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8003
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8003
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

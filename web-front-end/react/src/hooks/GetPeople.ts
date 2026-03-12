@@ -1,10 +1,8 @@
 import { SetStateAction, useEffect, useState } from "react";
 import { Environment } from '../env';
 import { fetchWithTenant } from '../fetchWithTenant';
-import { useTenant } from '../TenantContext';
 
 export const GetPeople = () => {
-	const { tenant } = useTenant();
 	const [people, setPeople] = useState<JSON[]>([]);
 	type data = () => Promise<unknown>;
   useEffect(() => {
@@ -21,6 +19,6 @@ export const GetPeople = () => {
 			}
     }
     loadPeople();
-  }, [tenant]);
+  }, []);
 	return people;
 }
