@@ -1,10 +1,12 @@
 import './App.css';
 import { Datatable } from './Datatable/Datatable';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { TenantProvider, useTenant, TENANTS, TenantId } from './TenantContext';
 import { setCurrentTenant } from './fetchWithTenant';
 import { reconnectSocket } from './socket';
 import * as socketModule from './socket';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
@@ -13,8 +15,13 @@ import Chip from '@mui/material/Chip';
 import MenuItem from '@mui/material/MenuItem';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import FormControl from '@mui/material/FormControl';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
+import { ThemeMode, getStoredThemeMode, storeThemeMode, getTheme } from './theme';
 
 const TenantSelector = () => {
   const { tenant, setTenant } = useTenant();
@@ -104,49 +111,74 @@ const ConnectionStatus = () => {
 };
 
 function App() {
+  const [themeMode, setThemeMode] = useState<ThemeMode>(getStoredThemeMode);
+  const theme = useMemo(() => getTheme(themeMode), [themeMode]);
+  const isDark = themeMode === 'dark';
+
+  const handleToggleTheme = () => {
+    const newMode: ThemeMode = isDark ? 'light' : 'dark';
+    storeThemeMode(newMode);
+    setThemeMode(newMode);
+  };
+
   return (
-    <TenantProvider>
-      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
-        <AppBar
-          position="static"
-          elevation={0}
-          sx={{
-            bgcolor: '#0d1321',
-            borderBottom: '1px solid rgba(255,255,255,0.08)',
-          }}
-        >
-          <Toolbar sx={{ justifyContent: 'space-between', minHeight: '56px !important' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <ShowChartIcon sx={{ color: '#3b82f6', fontSize: 28 }} />
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 700,
-                  letterSpacing: '-0.02em',
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
-              >
-                TraderX
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <ConnectionStatus />
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 500 }}>
-                  TENANT
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <TenantProvider>
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
+          <AppBar
+            position="static"
+            elevation={0}
+            sx={{
+              bgcolor: isDark ? '#0d1321' : '#ffffff',
+              borderBottom: isDark
+                ? '1px solid rgba(255,255,255,0.08)'
+                : '1px solid rgba(0,0,0,0.12)',
+            }}
+          >
+            <Toolbar sx={{ justifyContent: 'space-between', minHeight: '56px !important' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <ShowChartIcon sx={{ color: '#3b82f6', fontSize: 28 }} />
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 700,
+                    letterSpacing: '-0.02em',
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                  }}
+                >
+                  TraderX
                 </Typography>
-                <TenantSelector />
               </Box>
-            </Box>
-          </Toolbar>
-        </AppBar>
-        <Box sx={{ flex: 1, overflow: 'auto' }}>
-          <Datatable />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <ConnectionStatus />
+                <Tooltip title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
+                  <IconButton
+                    onClick={handleToggleTheme}
+                    size="small"
+                    sx={{ color: isDark ? '#9ca3af' : '#4b5563' }}
+                    aria-label="Toggle light/dark mode"
+                  >
+                    {isDark ? <Brightness7Icon /> : <Brightness4Icon />}
+                  </IconButton>
+                </Tooltip>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="caption" sx={{ color: isDark ? '#6b7280' : '#4b5563', fontWeight: 500 }}>
+                    TENANT
+                  </Typography>
+                  <TenantSelector />
+                </Box>
+              </Box>
+            </Toolbar>
+          </AppBar>
+          <Box sx={{ flex: 1, overflow: 'auto' }}>
+            <Datatable />
+          </Box>
         </Box>
-      </Box>
-    </TenantProvider>
+      </TenantProvider>
+    </ThemeProvider>
   );
 }
 
