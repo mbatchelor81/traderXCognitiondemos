@@ -6,10 +6,12 @@ This is the main application module that wires everything together.
 import logging
 
 import socketio
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import *  # noqa: F401,F403 — intentional global config import
+from app.exceptions import AccountNotFoundError, InvalidQuantityError
 from app.middleware import TenantMiddleware
 from app.routes import accounts, trades, positions, people, reference_data
 from app.services.trade_processor import set_socketio_server
@@ -106,6 +108,24 @@ def create_app() -> FastAPI:
     @app.get("/health")
     def health():
         return {"status": "UP"}
+
+    @app.exception_handler(AccountNotFoundError)
+    async def account_not_found_handler(
+        request: Request, exc: AccountNotFoundError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=404,
+            content={"detail": str(exc)},
+        )
+
+    @app.exception_handler(InvalidQuantityError)
+    async def invalid_quantity_handler(
+        request: Request, exc: InvalidQuantityError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content={"detail": str(exc)},
+        )
 
     logger.info("FastAPI application created with all routes")
     return app
