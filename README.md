@@ -2,6 +2,8 @@
 
 A multi-tenant trading platform built as a Python/FastAPI monolith. Supports account management, trade submission, position tracking, and real-time updates via Socket.io. Uses SQLite for storage with 3 demo tenants (`acme_corp`, `globex_inc`, `initech`).
 
+[![CI](https://github.com/mbatchelor81/traderXCognitiondemos/actions/workflows/ci.yml/badge.svg)](https://github.com/mbatchelor81/traderXCognitiondemos/actions/workflows/ci.yml)
+
 ---
 
 ## Prerequisites
