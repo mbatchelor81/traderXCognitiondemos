@@ -30,6 +30,7 @@ from sqlalchemy.orm import Session
 
 from app.config import *  # noqa: F401,F403 — intentional global config import
 from app.database import SessionLocal
+from app.exceptions import AccountNotFoundError, InvalidTradeQuantityError
 from app.models.account import Account, AccountUser
 from app.models.trade import Trade
 from app.models.position import Position
@@ -148,13 +149,13 @@ def validate_trade_request(db: Session, account_id: int, security: str,
         error = (f"Invalid trade quantity: {quantity}. "
                  f"Must be between {MIN_TRADE_QUANTITY} and {MAX_TRADE_QUANTITY}.")
         logger.error(error)
-        return False, error
+        raise InvalidTradeQuantityError(error)
 
     # Validate account exists (cross-domain query)
     if not validate_account_exists(db, account_id, tenant_id):
         error = f"Account {account_id} not found for tenant {tenant_id}."
         logger.error(error)
-        return False, error
+        raise AccountNotFoundError(error)
 
     # Validate security exists (cross-domain query)
     if not validate_security_exists(security):
