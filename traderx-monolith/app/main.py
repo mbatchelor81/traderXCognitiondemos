@@ -107,6 +107,16 @@ def create_app() -> FastAPI:
     def health():
         return {"status": "UP"}
 
+    @app.get("/metrics")
+    def metrics():
+        from app.config import _runtime_state
+        return {
+            "total_trades_processed": _runtime_state["total_trades_processed"],
+            "last_trade_timestamp": _runtime_state["last_trade_timestamp"],
+            "active_sessions": _runtime_state["active_sessions"],
+            "startup_time": _runtime_state["startup_time"],
+        }
+
     logger.info("FastAPI application created with all routes")
     return app
 
