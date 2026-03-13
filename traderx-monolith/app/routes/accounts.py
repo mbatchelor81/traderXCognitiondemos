@@ -78,33 +78,8 @@ def update_account(body: AccountCreate, request: Request,
     return account.to_dict()
 
 
-@router.get("/account/{account_id}")
-def get_account(account_id: int, request: Request,
-                db: Session = Depends(get_db)):
-    """
-    Get account by ID with portfolio summary.
-    NOTE: This endpoint directly queries the positions table — cross-domain
-    query intentional smell (bypasses service layer).
-    """
-    tenant_id = get_tenant_from_request(request)
-    account = account_service.get_account_by_id(db, account_id, tenant_id)
-    if account is None:
-        raise HTTPException(status_code=404,
-                            detail=f"Account {account_id} not found")
-
-    # Cross-domain query: directly query positions table for portfolio summary
-    positions = db.query(Position).filter(
-        Position.account_id == account_id,
-        Position.tenant_id == tenant_id,
-    ).all()
-
-    result = account.to_dict()
-    result["positions"] = [p.to_dict() for p in positions]
-    return result
-
-
 # =============================================================================
-# Null-Field Endpoints
+# Null-Field Endpoints (must be declared before /account/{account_id})
 # =============================================================================
 
 @router.get("/account/null-fields/")
@@ -132,6 +107,31 @@ def validate_account_null_fields(body: AccountNullValidateRequest,
         db, body.accountIds, tenant_id
     )
     return results
+
+
+@router.get("/account/{account_id}")
+def get_account(account_id: int, request: Request,
+                db: Session = Depends(get_db)):
+    """
+    Get account by ID with portfolio summary.
+    NOTE: This endpoint directly queries the positions table — cross-domain
+    query intentional smell (bypasses service layer).
+    """
+    tenant_id = get_tenant_from_request(request)
+    account = account_service.get_account_by_id(db, account_id, tenant_id)
+    if account is None:
+        raise HTTPException(status_code=404,
+                            detail=f"Account {account_id} not found")
+
+    # Cross-domain query: directly query positions table for portfolio summary
+    positions = db.query(Position).filter(
+        Position.account_id == account_id,
+        Position.tenant_id == tenant_id,
+    ).all()
+
+    result = account.to_dict()
+    result["positions"] = [p.to_dict() for p in positions]
+    return result
 
 
 # =============================================================================
