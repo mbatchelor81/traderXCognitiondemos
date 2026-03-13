@@ -33,6 +33,7 @@ from app.database import SessionLocal
 from app.models.account import Account, AccountUser
 from app.models.trade import Trade
 from app.models.position import Position
+from app.models.trade_audit import TradeAudit
 from app.utils.helpers import (
     find_stock_by_ticker,
     load_stocks_from_csv,
@@ -302,6 +303,18 @@ def transition_trade_state(db: Session, trade: Trade,
     trade.updated = now_utc()
     db.flush()
 
+    audit = TradeAudit(
+        trade_id=trade.id,
+        tenant_id=trade.tenant_id,
+        account_id=trade.account_id,
+        old_state=old_state,
+        new_state=new_state,
+        action=f"STATE_CHANGE:{old_state}->{new_state}",
+        timestamp=now_utc(),
+    )
+    db.add(audit)
+    db.flush()
+
     log_trade_event(
         trade.id, trade.account_id,
         f"STATE_CHANGE:{old_state}->{new_state}",
@@ -411,6 +424,19 @@ async def process_trade(db: Session, account_id: int, security: str,
     db.add(trade)
     db.flush()  # Get the trade ID
 
+    audit_created = TradeAudit(
+        trade_id=trade.id,
+        tenant_id=tenant_id,
+        account_id=account_id,
+        old_state=None,
+        new_state="New",
+        action="CREATED",
+        details=f"security={security} side={side} qty={quantity}",
+        timestamp=now_utc(),
+    )
+    db.add(audit_created)
+    db.flush()
+
     log_trade_event(trade.id, account_id, "CREATED", tenant_id,
                     f"security={security} side={side} qty={quantity}")
 
@@ -462,6 +488,20 @@ async def process_trade(db: Session, account_id: int, security: str,
 
     # Log final audit
     elapsed_ms = (time.time() - start_time) * 1000
+
+    audit_completed = TradeAudit(
+        trade_id=trade.id,
+        tenant_id=tenant_id,
+        account_id=account_id,
+        old_state=trade.state,
+        new_state=trade.state,
+        action="COMPLETED",
+        details=f"elapsed_ms={elapsed_ms:.2f} final_state={trade.state}",
+        timestamp=now_utc(),
+    )
+    db.add(audit_completed)
+    db.flush()
+
     log_trade_event(trade.id, account_id, "COMPLETED", tenant_id,
                     f"elapsed_ms={elapsed_ms:.2f} final_state={trade.state}")
 
@@ -994,6 +1034,29 @@ def validate_user_can_trade(db: Session, account_id: int, username: str,
 # =============================================================================
 # Audit Trail Queries
 # =============================================================================
+
+def get_trade_audit_trail(db: Session, trade_id: int,
+                          tenant_id: str) -> List[Dict]:
+    """Get the full audit trail for a specific trade."""
+    audits = db.query(TradeAudit).filter(
+        TradeAudit.trade_id == trade_id,
+        TradeAudit.tenant_id == tenant_id,
+    ).order_by(TradeAudit.timestamp).all()
+
+    return [
+        {
+            "id": a.id,
+            "tradeId": a.trade_id,
+            "accountId": a.account_id,
+            "oldState": a.old_state,
+            "newState": a.new_state,
+            "action": a.action,
+            "details": a.details,
+            "timestamp": a.timestamp.isoformat() if a.timestamp else None,
+        }
+        for a in audits
+    ]
+
 
 def get_recent_trades_audit(db: Session, tenant_id: str,
                             limit: int = 50) -> List[Dict]:
