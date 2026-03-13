@@ -7,7 +7,7 @@ SQLAlchemy queries — intentionally inconsistent (architectural smell).
 """
 
 import logging
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
@@ -38,6 +38,10 @@ class AccountCreate(BaseModel):
 class AccountUserCreate(BaseModel):
     accountId: int
     username: str
+
+
+class AccountNullValidateRequest(BaseModel):
+    accountIds: List[int]
 
 
 # =============================================================================
@@ -97,6 +101,37 @@ def get_account(account_id: int, request: Request,
     result = account.to_dict()
     result["positions"] = [p.to_dict() for p in positions]
     return result
+
+
+# =============================================================================
+# Null-Field Endpoints
+# =============================================================================
+
+@router.get("/account/null-fields/")
+def list_accounts_with_null_fields(request: Request,
+                                   db: Session = Depends(get_db)):
+    """List accounts that have null or empty display_name for the current tenant."""
+    tenant_id = get_tenant_from_request(request)
+    accounts = account_service.get_accounts_with_null_fields(db, tenant_id)
+    return [a.to_dict() for a in accounts]
+
+
+@router.post("/account/validate-nulls/")
+def validate_account_null_fields(body: AccountNullValidateRequest,
+                                 request: Request,
+                                 db: Session = Depends(get_db)):
+    """
+    Validate a batch of account IDs for null/empty fields.
+    Returns per-account null-field diagnostics.
+    """
+    tenant_id = get_tenant_from_request(request)
+    if not body.accountIds:
+        raise HTTPException(status_code=400,
+                            detail="accountIds list must not be empty")
+    results = account_service.validate_accounts_null_fields(
+        db, body.accountIds, tenant_id
+    )
+    return results
 
 
 # =============================================================================
