@@ -518,7 +518,14 @@ async def cancel_trade(db: Session, trade_id: int, tenant_id: str) -> Dict:
         )
 
     # Step 4: Transition trade state to Cancelled
-    transition_trade_state(db, trade, "Cancelled")
+    if not transition_trade_state(db, trade, "Cancelled"):
+        logger.error("Failed to transition trade %d to Cancelled", trade.id)
+        return {
+            "success": False,
+            "error": "Failed to cancel trade — state transition failed.",
+            "trade": trade.to_dict(),
+            "position": None,
+        }
 
     # Step 5: Commit and refresh
     db.commit()
