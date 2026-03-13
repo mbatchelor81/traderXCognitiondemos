@@ -500,7 +500,7 @@ async def process_trade(db: Session, account_id: int, security: str,
         timestamp=now_utc(),
     )
     db.add(audit_completed)
-    db.flush()
+    db.commit()
 
     log_trade_event(trade.id, account_id, "COMPLETED", tenant_id,
                     f"elapsed_ms={elapsed_ms:.2f} final_state={trade.state}")
