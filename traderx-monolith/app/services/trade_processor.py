@@ -830,12 +830,13 @@ def cancel_stale_trades(db: Session, tenant_id: str,
 
     cancelled_count = 0
     for trade in stale:
+        old_state = trade.state
         if transition_trade_state(db, trade, "Cancelled"):
             cancelled_count += 1
             log_trade_event(trade.id, trade.account_id,
                             "STALE_CANCELLED", tenant_id,
                             f"created={trade.created.isoformat()}")
-            record_trade_audit(db, trade, old_state=trade.state,
+            record_trade_audit(db, trade, old_state=old_state,
                                new_state="Cancelled",
                                event_type="STALE_CANCELLED",
                                details=f"created={trade.created.isoformat()}")
