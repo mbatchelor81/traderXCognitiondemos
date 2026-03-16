@@ -21,7 +21,7 @@ const DEFAULT_SUMMARY: AccountSummaryData = {
 	netQuantity: 0,
 };
 
-export const GetAccountSummary = (accountId: number): AccountSummaryData => {
+export const GetAccountSummary = (accountId: number, refreshTrigger: number = 0): AccountSummaryData => {
 	const { tenant } = useTenant();
 	const [summary, setSummary] = useState<AccountSummaryData>(DEFAULT_SUMMARY);
 
@@ -52,7 +52,7 @@ export const GetAccountSummary = (accountId: number): AccountSummaryData => {
 		};
 		fetchData();
 		return () => { abortController.abort(); };
-	}, [accountId, tenant]);
+	}, [accountId, tenant, refreshTrigger]);
 
 	return summary;
 };
