@@ -33,6 +33,7 @@ from app.database import SessionLocal
 from app.models.account import Account, AccountUser
 from app.models.trade import Trade
 from app.models.position import Position
+from app.models.trade_audit import TradeAudit
 from app.utils.helpers import (
     find_stock_by_ticker,
     load_stocks_from_csv,
@@ -283,6 +284,39 @@ def can_transition(current_state: str, new_state: str) -> bool:
     return new_state in allowed
 
 
+def record_trade_audit(db: Session, trade: Trade,
+                       old_state: Optional[str], new_state: str,
+                       event_type: str, details: str = "") -> TradeAudit:
+    """
+    Record a trade audit trail entry.
+    Creates a TradeAudit row, adds it to the session, and flushes.
+    """
+    audit = TradeAudit(
+        trade_id=trade.id,
+        tenant_id=trade.tenant_id,
+        account_id=trade.account_id,
+        old_state=old_state,
+        new_state=new_state,
+        event_type=event_type,
+        details=details,
+        timestamp=now_utc(),
+    )
+    db.add(audit)
+    db.flush()
+    logger.info("Recorded audit: trade_id=%d event=%s %s->%s",
+                trade.id, event_type, old_state, new_state)
+    return audit
+
+
+def get_trade_audit_trail(db: Session, trade_id: int,
+                          tenant_id: str) -> List[TradeAudit]:
+    """Get all audit trail entries for a given trade, ordered by timestamp."""
+    return db.query(TradeAudit).filter(
+        TradeAudit.trade_id == trade_id,
+        TradeAudit.tenant_id == tenant_id,
+    ).order_by(TradeAudit.timestamp).all()
+
+
 def transition_trade_state(db: Session, trade: Trade,
                            new_state: str) -> bool:
     """
@@ -307,6 +341,10 @@ def transition_trade_state(db: Session, trade: Trade,
         f"STATE_CHANGE:{old_state}->{new_state}",
         trade.tenant_id
     )
+
+    record_trade_audit(db, trade, old_state, new_state,
+                       event_type="STATE_CHANGE",
+                       details=f"{old_state}->{new_state}")
 
     logger.info("Trade %d state: %s -> %s", trade.id, old_state, new_state)
     return True
@@ -414,6 +452,10 @@ async def process_trade(db: Session, account_id: int, security: str,
     log_trade_event(trade.id, account_id, "CREATED", tenant_id,
                     f"security={security} side={side} qty={quantity}")
 
+    record_trade_audit(db, trade, old_state=None, new_state="New",
+                       event_type="CREATED",
+                       details=f"security={security} side={side} qty={quantity}")
+
     logger.info("Trade created with ID: %d", trade.id)
 
     # Step 3: Transition to Processing
@@ -464,6 +506,11 @@ async def process_trade(db: Session, account_id: int, security: str,
     elapsed_ms = (time.time() - start_time) * 1000
     log_trade_event(trade.id, account_id, "COMPLETED", tenant_id,
                     f"elapsed_ms={elapsed_ms:.2f} final_state={trade.state}")
+
+    record_trade_audit(db, trade, old_state=trade.state, new_state=trade.state,
+                       event_type="COMPLETED",
+                       details=f"elapsed_ms={elapsed_ms:.2f} final_state={trade.state}")
+    db.commit()
 
     logger.info("Trade processing complete: trade_id=%d state=%s elapsed=%.2fms",
                 trade.id, trade.state, elapsed_ms)
@@ -755,6 +802,9 @@ def settle_pending_trades(db: Session, tenant_id: str) -> int:
             settled_count += 1
             log_trade_event(trade.id, trade.account_id,
                             "BATCH_SETTLED", tenant_id)
+            record_trade_audit(db, trade, old_state="Processing",
+                               new_state="Settled",
+                               event_type="BATCH_SETTLED")
 
     if settled_count > 0:
         db.commit()
@@ -785,6 +835,10 @@ def cancel_stale_trades(db: Session, tenant_id: str,
             log_trade_event(trade.id, trade.account_id,
                             "STALE_CANCELLED", tenant_id,
                             f"created={trade.created.isoformat()}")
+            record_trade_audit(db, trade, old_state=trade.state,
+                               new_state="Cancelled",
+                               event_type="STALE_CANCELLED",
+                               details=f"created={trade.created.isoformat()}")
 
     if cancelled_count > 0:
         db.commit()
