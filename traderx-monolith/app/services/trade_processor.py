@@ -32,6 +32,7 @@ from app.config import *  # noqa: F401,F403 — intentional global config import
 from app.database import SessionLocal
 from app.models.account import Account, AccountUser
 from app.models.trade import Trade
+from app.models.trade_audit import TradeAudit
 from app.models.position import Position
 from app.utils.helpers import (
     find_stock_by_ticker,
@@ -266,6 +267,30 @@ def get_all_positions(db: Session, tenant_id: str) -> List[Position]:
 
 
 # =============================================================================
+# Trade Audit Recording
+# =============================================================================
+
+def record_trade_audit(db: Session, trade_id: int, account_id: int,
+                       tenant_id: str, event_type: str,
+                       old_state: Optional[str],
+                       new_state: str,
+                       details: Optional[str] = None) -> None:
+    """Create a TradeAudit record, add it to the session, and flush."""
+    audit = TradeAudit(
+        trade_id=trade_id,
+        tenant_id=tenant_id,
+        account_id=account_id,
+        old_state=old_state,
+        new_state=new_state,
+        event_type=event_type,
+        details=details,
+        timestamp=now_utc(),
+    )
+    db.add(audit)
+    db.flush()
+
+
+# =============================================================================
 # Trade State Machine
 # =============================================================================
 
@@ -306,6 +331,13 @@ def transition_trade_state(db: Session, trade: Trade,
         trade.id, trade.account_id,
         f"STATE_CHANGE:{old_state}->{new_state}",
         trade.tenant_id
+    )
+
+    record_trade_audit(
+        db, trade.id, trade.account_id, trade.tenant_id,
+        event_type="STATE_CHANGE",
+        old_state=old_state,
+        new_state=new_state,
     )
 
     logger.info("Trade %d state: %s -> %s", trade.id, old_state, new_state)
@@ -414,6 +446,14 @@ async def process_trade(db: Session, account_id: int, security: str,
     log_trade_event(trade.id, account_id, "CREATED", tenant_id,
                     f"security={security} side={side} qty={quantity}")
 
+    record_trade_audit(
+        db, trade.id, account_id, tenant_id,
+        event_type="CREATED",
+        old_state=None,
+        new_state="New",
+        details=f"security={security} side={side} qty={quantity}",
+    )
+
     logger.info("Trade created with ID: %d", trade.id)
 
     # Step 3: Transition to Processing
@@ -464,6 +504,15 @@ async def process_trade(db: Session, account_id: int, security: str,
     elapsed_ms = (time.time() - start_time) * 1000
     log_trade_event(trade.id, account_id, "COMPLETED", tenant_id,
                     f"elapsed_ms={elapsed_ms:.2f} final_state={trade.state}")
+
+    record_trade_audit(
+        db, trade.id, account_id, tenant_id,
+        event_type="COMPLETED",
+        old_state=trade.state,
+        new_state=trade.state,
+        details=f"elapsed_ms={elapsed_ms:.2f}",
+    )
+    db.commit()
 
     logger.info("Trade processing complete: trade_id=%d state=%s elapsed=%.2fms",
                 trade.id, trade.state, elapsed_ms)
@@ -994,6 +1043,25 @@ def validate_user_can_trade(db: Session, account_id: int, username: str,
 # =============================================================================
 # Audit Trail Queries
 # =============================================================================
+
+def get_trade_audit_trail(db: Session, trade_id: int,
+                          tenant_id: str) -> List[TradeAudit]:
+    """Return all TradeAudit records for a trade, ordered by timestamp ascending."""
+    return db.query(TradeAudit).filter(
+        TradeAudit.trade_id == trade_id,
+        TradeAudit.tenant_id == tenant_id,
+    ).order_by(TradeAudit.timestamp).all()
+
+
+def get_account_audit_trail(db: Session, account_id: int,
+                            tenant_id: str,
+                            limit: int = 100) -> List[TradeAudit]:
+    """Return audit records for all trades on an account, ordered by timestamp descending."""
+    return db.query(TradeAudit).filter(
+        TradeAudit.account_id == account_id,
+        TradeAudit.tenant_id == tenant_id,
+    ).order_by(desc(TradeAudit.timestamp)).limit(limit).all()
+
 
 def get_recent_trades_audit(db: Session, tenant_id: str,
                             limit: int = 50) -> List[Dict]:
