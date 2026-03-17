@@ -484,7 +484,20 @@ async def process_trade(db: Session, account_id: int, security: str,
         logger.info("Trade %d left in Processing state — "
                      "auto-settle disabled for tenant %s", trade.id, tenant_id)
 
-    # Commit all changes
+    # Log final audit
+    elapsed_ms = (time.time() - start_time) * 1000
+    log_trade_event(trade.id, account_id, "COMPLETED", tenant_id,
+                    f"elapsed_ms={elapsed_ms:.2f} final_state={trade.state}")
+
+    record_trade_audit(
+        db, trade.id, account_id, tenant_id,
+        event_type="COMPLETED",
+        old_state=trade.state,
+        new_state=trade.state,
+        details=f"elapsed_ms={elapsed_ms:.2f}",
+    )
+
+    # Commit all changes (including audit records) in a single transaction
     db.commit()
     db.refresh(trade)
     db.refresh(position)
@@ -499,20 +512,6 @@ async def process_trade(db: Session, account_id: int, security: str,
     update_runtime_state("total_trades_processed",
                          get_runtime_state()["total_trades_processed"] + 1)
     update_runtime_state("last_trade_timestamp", now_utc().isoformat())
-
-    # Log final audit
-    elapsed_ms = (time.time() - start_time) * 1000
-    log_trade_event(trade.id, account_id, "COMPLETED", tenant_id,
-                    f"elapsed_ms={elapsed_ms:.2f} final_state={trade.state}")
-
-    record_trade_audit(
-        db, trade.id, account_id, tenant_id,
-        event_type="COMPLETED",
-        old_state=trade.state,
-        new_state=trade.state,
-        details=f"elapsed_ms={elapsed_ms:.2f}",
-    )
-    db.commit()
 
     logger.info("Trade processing complete: trade_id=%d state=%s elapsed=%.2fms",
                 trade.id, trade.state, elapsed_ms)
