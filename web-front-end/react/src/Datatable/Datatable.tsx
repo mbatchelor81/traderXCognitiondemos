@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 
 import 'ag-grid-community/styles/ag-grid.css';
@@ -114,6 +114,7 @@ export const Datatable = () => {
 	const [positionRowData, setPositionRowData] = useState<PositionData[]>([]);
 	const [selectedId, setSelectedId] = useState<number>(0);
 	const [currentAccount, setCurrentAccount] = useState<string>('');
+	const summaryAbortRef = useRef<AbortController | null>(null);
 
 	const positionData = GetPositions(selectedId);
 	const tradeData = GetTrades(selectedId);
@@ -150,6 +151,10 @@ export const Datatable = () => {
 
 	const handleChange = useCallback((event: SelectChangeEvent<string>) => {
 		socketModule.socket.off(PUBLISH);
+		if (summaryAbortRef.current) {
+			summaryAbortRef.current.abort();
+			summaryAbortRef.current = null;
+		}
 		if (selectedId !== 0) {
 			socketModule.socket.emit(UNSUBSCRIBE, `/accounts/${selectedId}/trades`);
 			socketModule.socket.emit(UNSUBSCRIBE, `/accounts/${selectedId}/positions`);
@@ -162,11 +167,16 @@ export const Datatable = () => {
 			socketModule.socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/positions`);
 			socketModule.socket.on(PUBLISH, (data: { topic: string; payload: TradeData | PositionData }) => {
 				if (data.topic === `/accounts/${event.target.value}/trades`) {
-					setTradeRowData((current: TradeData[]) => [...current, data.payload as TradeData]);
-					// Re-fetch summary stats when a new trade arrives
-					fetchWithTenant(
-						`${Environment.account_service_url}/account/${event.target.value}/summary`
-					).then(res => { if (res.ok) return res.json(); }).then(json => { if (json) setAccountSummary(json); });
+						setTradeRowData((current: TradeData[]) => [...current, data.payload as TradeData]);
+						// Re-fetch summary stats when a new trade arrives
+						const controller = new AbortController();
+						summaryAbortRef.current = controller;
+						fetchWithTenant(
+							`${Environment.account_service_url}/account/${event.target.value}/summary`,
+							{ signal: controller.signal }
+						).then(res => { if (res.ok) return res.json(); })
+							.then(json => { if (json) setAccountSummary(json); })
+							.catch(err => { if (err.name !== 'AbortError') console.error('Summary fetch failed', err); });
 				}
 				if (data.topic === `/accounts/${event.target.value}/positions`) {
 					setPositionRowData((current: PositionData[]) => [...current, data.payload as PositionData]);
