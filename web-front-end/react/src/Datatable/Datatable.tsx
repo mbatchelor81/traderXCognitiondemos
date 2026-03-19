@@ -168,9 +168,10 @@ export const Datatable = () => {
 			socketModule.socket.on(PUBLISH, (data: { topic: string; payload: TradeData | PositionData }) => {
 				if (data.topic === `/accounts/${event.target.value}/trades`) {
 						setTradeRowData((current: TradeData[]) => [...current, data.payload as TradeData]);
-						// Re-fetch summary stats when a new trade arrives
-						const controller = new AbortController();
-						summaryAbortRef.current = controller;
+							// Re-fetch summary stats when a new trade arrives
+							if (summaryAbortRef.current) { summaryAbortRef.current.abort(); }
+							const controller = new AbortController();
+							summaryAbortRef.current = controller;
 						fetchWithTenant(
 							`${Environment.account_service_url}/account/${event.target.value}/summary`,
 							{ signal: controller.signal }
