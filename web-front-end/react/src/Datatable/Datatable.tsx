@@ -128,6 +128,7 @@ export const Datatable = () => {
 		setCurrentAccount('');
 		setTradeRowData([]);
 		setPositionRowData([]);
+		setAccountSummary(emptySummary);
 	}, [tenant]);
 
 	const tradeColumnDefs = useMemo<ColDef<TradeData>[]>(() => [
@@ -152,6 +153,7 @@ export const Datatable = () => {
 
 	const handleChange = useCallback((event: SelectChangeEvent<string>) => {
 		socketModule.socket.off(PUBLISH);
+		setAccountSummary(emptySummary);
 		if (summaryAbortRef.current) {
 			summaryAbortRef.current.abort();
 			summaryAbortRef.current = null;
