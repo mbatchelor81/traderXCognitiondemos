@@ -16,7 +16,9 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import * as socketModule from '../socket';
-import { GetPositions, GetTrades } from '../hooks';
+import { Environment } from '../env';
+import { fetchWithTenant } from '../fetchWithTenant';
+import { GetAccountSummary, GetPositions, GetTrades } from '../hooks';
 import { CreateAccount, CreateAccountUser, CreateTradeButton } from '../ActionButtons';
 import { ColDef, ICellRendererParams } from 'ag-grid-community';
 import { PositionData, TradeData } from './types';
@@ -115,6 +117,8 @@ export const Datatable = () => {
 
 	const positionData = GetPositions(selectedId);
 	const tradeData = GetTrades(selectedId);
+	const summaryData = GetAccountSummary(selectedId);
+	const [accountSummary, setAccountSummary] = useState(summaryData);
 
 	// Reset selection when tenant changes
 	useEffect(() => {
@@ -159,6 +163,10 @@ export const Datatable = () => {
 			socketModule.socket.on(PUBLISH, (data: { topic: string; payload: TradeData | PositionData }) => {
 				if (data.topic === `/accounts/${event.target.value}/trades`) {
 					setTradeRowData((current: TradeData[]) => [...current, data.payload as TradeData]);
+					// Re-fetch summary stats when a new trade arrives
+					fetchWithTenant(
+						`${Environment.account_service_url}/account/${event.target.value}/summary`
+					).then(res => { if (res.ok) return res.json(); }).then(json => { if (json) setAccountSummary(json); });
 				}
 				if (data.topic === `/accounts/${event.target.value}/positions`) {
 					setPositionRowData((current: PositionData[]) => [...current, data.payload as PositionData]);
@@ -171,6 +179,10 @@ export const Datatable = () => {
 		setPositionRowData(positionData);
 		setTradeRowData(tradeData);
 	}, [positionData, tradeData]);
+
+	useEffect(() => {
+		setAccountSummary(summaryData);
+	}, [summaryData]);
 
 	const hasAccount = selectedId !== 0;
 
@@ -196,34 +208,34 @@ export const Datatable = () => {
 			{/* Summary stat cards */}
 			{hasAccount && (
 				<Grid container spacing={2} sx={{ mb: 3 }}>
-					<Grid item xs={12} sm={6} md={3}>
+						<Grid item xs={12} sm={6} md={3}>
 						<StatCard
 							title="Total Trades"
-							value={tradeRowData.length}
+							value={accountSummary.totalTrades}
 							icon={<TrendingUpIcon sx={{ fontSize: 32 }} />}
 							color="#3b82f6"
 						/>
 					</Grid>
 					<Grid item xs={12} sm={6} md={3}>
 						<StatCard
-							title="Total Positions"
-							value={positionRowData.length}
+							title="Settled Trades"
+							value={accountSummary.settledTrades}
 							icon={<BarChartIcon sx={{ fontSize: 32 }} />}
 							color="#8b5cf6"
 						/>
 					</Grid>
 					<Grid item xs={12} sm={6} md={3}>
 						<StatCard
-							title="Account"
-							value={currentAccount ? `#${currentAccount}` : '--'}
+							title="Pending Trades"
+							value={accountSummary.pendingTrades}
 							icon={<AccountBalanceIcon sx={{ fontSize: 32 }} />}
 							color="#10b981"
 						/>
 					</Grid>
 					<Grid item xs={12} sm={6} md={3}>
 						<StatCard
-							title="Live Feed"
-							value="Active"
+							title="Net Quantity"
+							value={accountSummary.netQuantity}
 							icon={<ShowChartIcon sx={{ fontSize: 32 }} />}
 							color="#f59e0b"
 						/>
