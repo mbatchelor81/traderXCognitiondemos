@@ -18,7 +18,8 @@ import ShowChartIcon from '@mui/icons-material/ShowChart';
 import * as socketModule from '../socket';
 import { Environment } from '../env';
 import { fetchWithTenant } from '../fetchWithTenant';
-import { GetAccountSummary, GetPositions, GetTrades } from '../hooks';
+import { AccountSummaryData } from '../hooks/GetAccountSummary';
+import { GetPositions, GetTrades } from '../hooks';
 import { CreateAccount, CreateAccountUser, CreateTradeButton } from '../ActionButtons';
 import { ColDef, ICellRendererParams } from 'ag-grid-community';
 import { PositionData, TradeData } from './types';
@@ -118,8 +119,8 @@ export const Datatable = () => {
 
 	const positionData = GetPositions(selectedId);
 	const tradeData = GetTrades(selectedId);
-	const summaryData = GetAccountSummary(selectedId);
-	const [accountSummary, setAccountSummary] = useState(summaryData);
+	const emptySummary: AccountSummaryData = { totalTrades: 0, settledTrades: 0, pendingTrades: 0, totalBuyQuantity: 0, totalSellQuantity: 0, netQuantity: 0 };
+	const [accountSummary, setAccountSummary] = useState<AccountSummaryData>(emptySummary);
 
 	// Reset selection when tenant changes
 	useEffect(() => {
@@ -163,6 +164,16 @@ export const Datatable = () => {
 		setSelectedId(numericId);
 		setCurrentAccount(event.target.value);
 		if (event.target.value) {
+			// Fetch initial summary for the newly selected account
+			const initController = new AbortController();
+			summaryAbortRef.current = initController;
+			fetchWithTenant(
+				`${Environment.account_service_url}/account/${event.target.value}/summary`,
+				{ signal: initController.signal }
+			).then(res => { if (res.ok) return res.json(); })
+				.then(json => { if (json) setAccountSummary(json); })
+				.catch(err => { if (err.name !== 'AbortError') console.error('Summary fetch failed', err); });
+
 			socketModule.socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/trades`);
 			socketModule.socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/positions`);
 			socketModule.socket.on(PUBLISH, (data: { topic: string; payload: TradeData | PositionData }) => {
@@ -191,9 +202,6 @@ export const Datatable = () => {
 		setTradeRowData(tradeData);
 	}, [positionData, tradeData]);
 
-	useEffect(() => {
-		setAccountSummary(summaryData);
-	}, [summaryData]);
 
 	const hasAccount = selectedId !== 0;
 
