@@ -82,6 +82,15 @@ const QuantityCellRenderer = (params: ICellRendererParams) => {
 	return <span style={{ color, fontWeight: 500 }}>{val.toLocaleString()}</span>;
 };
 
+const EMPTY_SUMMARY: AccountSummaryData = {
+	totalTrades: 0,
+	settledTrades: 0,
+	pendingTrades: 0,
+	totalBuyQuantity: 0,
+	totalSellQuantity: 0,
+	netQuantity: 0,
+};
+
 interface StatCardProps {
 	title: string;
 	value: string | number;
@@ -119,8 +128,7 @@ export const Datatable = () => {
 
 	const positionData = GetPositions(selectedId);
 	const tradeData = GetTrades(selectedId);
-	const emptySummary: AccountSummaryData = { totalTrades: 0, settledTrades: 0, pendingTrades: 0, totalBuyQuantity: 0, totalSellQuantity: 0, netQuantity: 0 };
-	const [accountSummary, setAccountSummary] = useState<AccountSummaryData>(emptySummary);
+	const [accountSummary, setAccountSummary] = useState<AccountSummaryData>(EMPTY_SUMMARY);
 
 	// Reset selection when tenant changes
 	useEffect(() => {
@@ -128,7 +136,7 @@ export const Datatable = () => {
 		setCurrentAccount('');
 		setTradeRowData([]);
 		setPositionRowData([]);
-		setAccountSummary(emptySummary);
+		setAccountSummary(EMPTY_SUMMARY);
 	}, [tenant]);
 
 	const tradeColumnDefs = useMemo<ColDef<TradeData>[]>(() => [
@@ -153,7 +161,7 @@ export const Datatable = () => {
 
 	const handleChange = useCallback((event: SelectChangeEvent<string>) => {
 		socketModule.socket.off(PUBLISH);
-		setAccountSummary(emptySummary);
+		setAccountSummary(EMPTY_SUMMARY);
 		if (summaryAbortRef.current) {
 			summaryAbortRef.current.abort();
 			summaryAbortRef.current = null;
