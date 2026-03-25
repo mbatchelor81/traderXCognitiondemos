@@ -38,6 +38,7 @@ def load_stocks_from_csv(file_path: Optional[str] = None) -> List[dict]:
                 stocks.append({
                     "ticker": row.get("Symbol", ""),
                     "companyName": row.get("Security", ""),
+                    "sector": row.get("GICS Sector", ""),
                 })
         _stocks_cache = stocks
         logger.info("Loaded %d stocks from %s", len(stocks), file_path)
