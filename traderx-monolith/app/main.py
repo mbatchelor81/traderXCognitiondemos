@@ -4,7 +4,9 @@ This is the main application module that wires everything together.
 """
 
 import logging
+import os
 
+import sentry_sdk
 import socketio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,6 +15,18 @@ from app.config import *  # noqa: F401,F403 — intentional global config import
 from app.middleware import TenantMiddleware
 from app.routes import accounts, trades, positions, people, reference_data
 from app.services.trade_processor import set_socketio_server
+
+# =============================================================================
+# Sentry SDK Initialization (must happen before app is created)
+# =============================================================================
+SENTRY_DSN = os.getenv("SENTRY_DSN", "")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        send_default_pii=True,
+        traces_sample_rate=1.0,
+        enable_logs=True,
+    )
 
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
@@ -106,6 +120,11 @@ def create_app() -> FastAPI:
     @app.get("/health")
     def health():
         return {"status": "UP"}
+
+    @app.get("/sentry-debug")
+    async def trigger_error():
+        """Deliberately trigger an error for Sentry demo purposes."""
+        division_by_zero = 1 / 0  # noqa: F841
 
     logger.info("FastAPI application created with all routes")
     return app
