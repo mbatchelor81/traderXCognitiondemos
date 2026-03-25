@@ -100,3 +100,29 @@ def list_trades_by_account(account_id: int, request: Request,
     tenant_id = get_tenant_from_request(request)
     trades = trade_processor.get_trades_for_account(db, account_id, tenant_id)
     return [t.to_dict() for t in trades]
+
+
+# =============================================================================
+# Trade Audit Trail Endpoint
+# =============================================================================
+
+@router.get("/trades/{trade_id}/audit")
+def get_trade_audit_trail(trade_id: int, request: Request,
+                          db: Session = Depends(get_db)):
+    """
+    Get the full audit trail for a specific trade.
+    Returns chronological list of all state changes and events.
+    """
+    tenant_id = get_tenant_from_request(request)
+
+    trade = trade_processor.get_trade_by_id(db, trade_id, tenant_id)
+    if trade is None:
+        raise HTTPException(status_code=404, detail="Trade not found")
+
+    audit_entries = trade_processor.get_trade_audit_trail(db, trade_id, tenant_id)
+
+    return {
+        "tradeId": trade_id,
+        "currentState": trade.state,
+        "auditTrail": [entry.to_dict() for entry in audit_entries],
+    }
