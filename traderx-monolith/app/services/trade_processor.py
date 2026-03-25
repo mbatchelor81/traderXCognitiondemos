@@ -643,10 +643,13 @@ async def process_trade(db: Session, account_id: int, security: str,
         logger.error("Error publishing Socket.io events: %s", str(e))
 
     # Step 7: Assess trade risk (recently added feature)
-    risk_assessment = _assess_trade_risk(
-        db, trade, account_id, security, side, quantity, tenant_id
-    )
-    logger.info("Trade %d risk assessment: %s", trade.id, risk_assessment)
+    try:
+        risk_assessment = _assess_trade_risk(
+            db, trade, account_id, security, side, quantity, tenant_id
+        )
+        logger.info("Trade %d risk assessment: %s", trade.id, risk_assessment)
+    except Exception as e:
+        logger.error("Risk assessment failed for trade %d: %s", trade.id, str(e))
 
     # Step 8: Update runtime stats
     update_runtime_state("total_trades_processed",
