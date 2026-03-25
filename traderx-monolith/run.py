@@ -7,6 +7,9 @@ import logging
 import sys
 import os
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # Ensure the monolith directory is on the path
 sys.path.insert(0, os.path.dirname(__file__))
 

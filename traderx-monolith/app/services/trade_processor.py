@@ -25,6 +25,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
+import sentry_sdk
 from sqlalchemy import func, and_, or_, desc
 from sqlalchemy.orm import Session
 
@@ -359,6 +360,119 @@ async def publish_trade_and_position(trade: Trade, position: Position):
 
 
 # =============================================================================
+# Trade Risk Assessment (recently added feature — has a bug)
+# =============================================================================
+
+# Risk thresholds by sector — used for concentration limits
+SECTOR_RISK_WEIGHTS = {
+    "Information Technology": 1.2,
+    "Health Care": 1.1,
+    "Financials": 1.3,
+    "Consumer Discretionary": 1.0,
+    "Communication Services": 1.1,
+    "Industrials": 0.9,
+    "Consumer Staples": 0.7,
+    "Energy": 1.4,
+    "Utilities": 0.6,
+    "Real Estate": 1.0,
+    "Materials": 0.8,
+}
+
+
+def _assess_trade_risk(db: Session, trade: Trade, account_id: int,
+                       security: str, side: str, quantity: int,
+                       tenant_id: str) -> dict:
+    """
+    Assess the risk of a trade based on sector concentration and position size.
+
+    This feature was recently added to provide risk metrics for the trading
+    dashboard. It enriches each trade with a risk score based on:
+    - The sector of the security being traded
+    - The current concentration of that sector in the account
+    - The size of the trade relative to existing positions
+
+    NOTE: This function queries reference data and position data to compute
+    the risk score — another cross-domain operation in the god service.
+    """
+    sentry_sdk.add_breadcrumb(
+        category="trade.risk",
+        message=f"Starting risk assessment for trade {trade.id}",
+        level="info",
+        data={"trade_id": trade.id, "security": security, "quantity": quantity},
+    )
+
+    logger.info("Assessing risk for trade %d: security=%s side=%s qty=%d",
+                trade.id, security, side, quantity)
+
+    # Look up the stock in reference data to get its sector
+    stock_info = find_stock_by_ticker(security)
+    if stock_info is None:
+        logger.warning("Could not find stock info for %s, skipping risk assessment",
+                       security)
+        return {"risk_score": 0.0, "risk_level": "unknown", "details": "Stock not found"}
+
+    sentry_sdk.add_breadcrumb(
+        category="trade.risk",
+        message=f"Found stock info for {security}: {stock_info['companyName']}",
+        level="info",
+        data={"stock_info": stock_info},
+    )
+
+    # Get the sector risk weight for this security
+    sector = stock_info["sector"]
+    sector_weight = SECTOR_RISK_WEIGHTS.get(sector, 1.0)
+
+    logger.info("Security %s is in sector %s (weight: %.2f)",
+                security, sector, sector_weight)
+
+    # Calculate position concentration
+    all_positions = get_positions_for_account(db, account_id, tenant_id)
+    total_quantity = sum(p.quantity for p in all_positions)
+
+    if total_quantity == 0:
+        concentration = 1.0
+    else:
+        current_security_qty = next(
+            (p.quantity for p in all_positions if p.security == security), 0
+        )
+        concentration = (current_security_qty + quantity) / total_quantity
+
+    # Compute final risk score
+    risk_score = round(sector_weight * concentration * (quantity / 1000), 4)
+
+    if risk_score > 5.0:
+        risk_level = "high"
+    elif risk_score > 2.0:
+        risk_level = "medium"
+    else:
+        risk_level = "low"
+
+    sentry_sdk.add_breadcrumb(
+        category="trade.risk",
+        message=f"Risk assessment complete: score={risk_score} level={risk_level}",
+        level="info",
+        data={
+            "risk_score": risk_score,
+            "risk_level": risk_level,
+            "sector": sector,
+            "sector_weight": sector_weight,
+            "concentration": concentration,
+        },
+    )
+
+    logger.info("Risk assessment for trade %d: score=%.4f level=%s",
+                trade.id, risk_score, risk_level)
+
+    return {
+        "risk_score": risk_score,
+        "risk_level": risk_level,
+        "sector": sector,
+        "sector_weight": sector_weight,
+        "concentration": round(concentration, 4),
+    }
+
+
+# =============================================================================
 # Core Trade Processing (the heart of the god service)
 # =============================================================================
 
@@ -384,18 +498,49 @@ async def process_trade(db: Session, account_id: int, security: str,
                 account_id, security, side, quantity, tenant_id)
     logger.info("=" * 60)
 
+    # Enrich Sentry scope with trade context
+    sentry_sdk.set_tag("trade.security", security)
+    sentry_sdk.set_tag("trade.side", side)
+    sentry_sdk.set_tag("trade.tenant", tenant_id)
+    sentry_sdk.set_context("trade_request", {
+        "account_id": account_id,
+        "security": security,
+        "side": side,
+        "quantity": quantity,
+        "tenant_id": tenant_id,
+    })
+
+    sentry_sdk.add_breadcrumb(
+        category="trade.processing",
+        message=f"Starting trade processing: {side} {quantity} {security}",
+        level="info",
+        data={"account_id": account_id, "tenant_id": tenant_id},
+    )
+
     # Step 1: Validate
     is_valid, error_msg = validate_trade_request(
         db, account_id, security, side, quantity, tenant_id
     )
     if not is_valid:
         logger.error("Trade validation failed: %s", error_msg)
+        sentry_sdk.add_breadcrumb(
+            category="trade.validation",
+            message=f"Validation failed: {error_msg}",
+            level="error",
+        )
         return {
             "success": False,
             "error": error_msg,
             "trade": None,
             "position": None,
         }
+
+    sentry_sdk.add_breadcrumb(
+        category="trade.validation",
+        message="Trade validation passed",
+        level="info",
+        data={"account_id": account_id, "security": security},
+    )
 
     # Step 2: Create trade record
     trade = Trade(
@@ -416,6 +561,21 @@ async def process_trade(db: Session, account_id: int, security: str,
 
     logger.info("Trade created with ID: %d", trade.id)
 
+    sentry_sdk.add_breadcrumb(
+        category="trade.lifecycle",
+        message=f"Trade {trade.id} created in state New",
+        level="info",
+        data={"trade_id": trade.id, "state": "New"},
+    )
+    sentry_sdk.set_context("trade", {
+        "trade_id": trade.id,
+        "account_id": account_id,
+        "security": security,
+        "side": side,
+        "quantity": quantity,
+        "state": "New",
+    })
+
     # Step 3: Transition to Processing
     if not transition_trade_state(db, trade, "Processing"):
         logger.error("Failed to transition trade %d to Processing", trade.id)
@@ -426,9 +586,27 @@ async def process_trade(db: Session, account_id: int, security: str,
             "position": None,
         }
 
+    sentry_sdk.add_breadcrumb(
+        category="trade.lifecycle",
+        message=f"Trade {trade.id} transitioned to Processing",
+        level="info",
+        data={"trade_id": trade.id, "state": "Processing"},
+    )
+
     # Step 4: Calculate position delta and update
     quantity_delta = quantity if side == "Buy" else -quantity
     position = update_position(db, account_id, security, quantity_delta, tenant_id)
+
+    sentry_sdk.add_breadcrumb(
+        category="trade.position",
+        message=f"Position updated for {security}: delta={quantity_delta}",
+        level="info",
+        data={
+            "security": security,
+            "quantity_delta": quantity_delta,
+            "new_quantity": position.quantity,
+        },
+    )
 
     # Step 5: Check tenant auto-settle config
     auto_settle = TENANT_AUTO_SETTLE.get(tenant_id, True)
@@ -449,13 +627,26 @@ async def process_trade(db: Session, account_id: int, security: str,
     db.refresh(trade)
     db.refresh(position)
 
+    sentry_sdk.add_breadcrumb(
+        category="trade.lifecycle",
+        message=f"Trade {trade.id} committed to database in state {trade.state}",
+        level="info",
+        data={"trade_id": trade.id, "final_state": trade.state},
+    )
+
     # Step 6: Publish Socket.io events
     try:
         await publish_trade_and_position(trade, position)
     except Exception as e:
         logger.error("Error publishing Socket.io events: %s", str(e))
 
-    # Step 7: Update runtime stats
+    # Step 7: Assess trade risk (recently added feature)
+    risk_assessment = _assess_trade_risk(
+        db, trade, account_id, security, side, quantity, tenant_id
+    )
+    logger.info("Trade %d risk assessment: %s", trade.id, risk_assessment)
+
+    # Step 8: Update runtime stats
     update_runtime_state("total_trades_processed",
                          get_runtime_state()["total_trades_processed"] + 1)
     update_runtime_state("last_trade_timestamp", now_utc().isoformat())
