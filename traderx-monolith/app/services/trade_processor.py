@@ -437,7 +437,7 @@ def _assess_trade_risk(db: Session, trade: Trade, account_id: int,
         current_security_qty = next(
             (p.quantity for p in all_positions if p.security == security), 0
         )
-        concentration = (current_security_qty + quantity) / total_quantity
+        concentration = current_security_qty / total_quantity
 
     # Compute final risk score
     risk_score = round(sector_weight * concentration * (quantity / 1000), 4)

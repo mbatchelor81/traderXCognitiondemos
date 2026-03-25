@@ -80,12 +80,7 @@ async def submit_trade(body: TradeOrderRequest, request: Request,
         return JSONResponse(
             status_code=500,
             content={
-                "error": f"{type(exc).__name__}: {exc}",
-                "detail": f"Trade processing failed during execution",
-                "location": location,
-                "security": body.security,
-                "side": body.side,
-                "quantity": body.quantity,
+                "detail": "Trade processing failed during execution",
             },
         )
 

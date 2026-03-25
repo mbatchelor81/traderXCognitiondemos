@@ -79,11 +79,8 @@ export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
 				let errorMsg = `Trade failed with status ${response.status}`;
 				try {
 					const errorData = await response.json();
-					if (errorData.error) {
-						errorMsg = `${errorData.error}`;
-						if (errorData.location) {
-							errorMsg += ` — at ${errorData.location}`;
-						}
+					if (errorData.detail) {
+						errorMsg = errorData.detail;
 					}
 				} catch {
 					// response wasn't JSON, use the default message
