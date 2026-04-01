@@ -53,6 +53,7 @@ export const GetAccountSummary = (accountId: number): { data: AccountSummaryStat
 			}
 		};
 		fetchData();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [accountId, tenant]);
 
 	useEffect(() => {
