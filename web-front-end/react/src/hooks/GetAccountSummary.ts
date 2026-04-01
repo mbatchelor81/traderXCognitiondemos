@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Environment } from '../env';
 import { fetchWithTenant } from '../fetchWithTenant';
 import { useTenant } from '../TenantContext';
@@ -31,18 +31,25 @@ const defaultStatistics: AccountSummaryStatistics = {
 export const GetAccountSummary = (accountId: number): { data: AccountSummaryStatistics; refetch: () => void } => {
 	const { tenant } = useTenant();
 	const [summary, setSummary] = useState<AccountSummaryStatistics>(defaultStatistics);
+	const abortControllerRef = useRef<AbortController | null>(null);
 
 	const fetchSummary = useCallback(() => {
+		if (abortControllerRef.current) {
+			abortControllerRef.current.abort();
+		}
 		if (accountId === 0) {
 			setSummary(defaultStatistics);
 			return;
 		}
+		const abortController = new AbortController();
+		abortControllerRef.current = abortController;
 		const fetchData = async () => {
 			try {
 				const response = await fetchWithTenant(
 					`${Environment.account_service_url}/account/${accountId}/summary`,
+					{ signal: abortController.signal },
 				);
-				if (response.ok) {
+				if (response.ok && !abortController.signal.aborted) {
 					const json: AccountSummaryData = await response.json();
 					setSummary(json.statistics);
 				}
@@ -58,6 +65,11 @@ export const GetAccountSummary = (accountId: number): { data: AccountSummaryStat
 
 	useEffect(() => {
 		fetchSummary();
+		return () => {
+			if (abortControllerRef.current) {
+				abortControllerRef.current.abort();
+			}
+		};
 	}, [fetchSummary]);
 
 	return { data: summary, refetch: fetchSummary };
