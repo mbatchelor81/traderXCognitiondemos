@@ -200,7 +200,7 @@ export const Datatable = () => {
 					<Grid item xs={12} sm={6} md={3}>
 						<StatCard
 							title="Total Trades"
-							value={summaryData?.statistics.totalTrades ?? tradeRowData.length}
+							value={tradeRowData.length}
 							icon={<TrendingUpIcon sx={{ fontSize: 32 }} />}
 							color="#3b82f6"
 						/>

@@ -23,8 +23,8 @@ export const GetAccountSummary = (accountId: number) => {
 	const { tenant } = useTenant();
 	const [summaryData, setSummaryData] = useState<AccountSummaryData | null>(null);
 	useEffect(() => {
+		setSummaryData(null);
 		if (accountId === 0) {
-			setSummaryData(null);
 			return;
 		}
 		const abortController = new AbortController();
