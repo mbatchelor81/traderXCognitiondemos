@@ -21,7 +21,7 @@ const emptySummary: AccountSummary = {
 	netQuantity: 0,
 };
 
-export const GetAccountSummary = (accountId: number): AccountSummary => {
+export const GetAccountSummary = (accountId: number, refreshKey: number = 0): AccountSummary => {
 	const { tenant } = useTenant();
 	const [summary, setSummary] = useState<AccountSummary>(emptySummary);
 	useEffect(() => {
@@ -51,6 +51,6 @@ export const GetAccountSummary = (accountId: number): AccountSummary => {
 		};
 		fetchData();
 		return () => { abortController.abort(); };
-	}, [accountId, tenant]);
+	}, [accountId, tenant, refreshKey]);
 	return summary;
 };
