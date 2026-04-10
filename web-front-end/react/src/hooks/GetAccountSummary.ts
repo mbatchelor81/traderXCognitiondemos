@@ -59,6 +59,11 @@ export const GetAccountSummary = (accountId: number) => {
 
 	useEffect(() => {
 		refetchSummary();
+		return () => {
+			if (abortRef.current) {
+				abortRef.current.abort();
+			}
+		};
 	}, [refetchSummary, tenant]);
 
 	return { summary, refetchSummary };
