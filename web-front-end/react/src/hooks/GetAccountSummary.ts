@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Environment } from '../env';
 import { fetchWithTenant } from '../fetchWithTenant';
 import { useTenant } from '../TenantContext';
@@ -24,13 +24,18 @@ const defaultStats: AccountSummaryStats = {
 export const GetAccountSummary = (accountId: number) => {
 	const { tenant } = useTenant();
 	const [summary, setSummary] = useState<AccountSummaryStats>(defaultStats);
+	const abortRef = useRef<AbortController | null>(null);
 
 	const refetchSummary = useCallback(() => {
+		if (abortRef.current) {
+			abortRef.current.abort();
+		}
 		if (accountId === 0) {
 			setSummary(defaultStats);
 			return;
 		}
 		const abortController = new AbortController();
+		abortRef.current = abortController;
 		const fetchData = async () => {
 			try {
 				const response = await fetchWithTenant(
@@ -50,12 +55,11 @@ export const GetAccountSummary = (accountId: number) => {
 			}
 		};
 		fetchData();
-		return () => { abortController.abort(); };
-	}, [accountId, tenant]);
+	}, [accountId]);
 
 	useEffect(() => {
 		refetchSummary();
-	}, [refetchSummary]);
+	}, [refetchSummary, tenant]);
 
 	return { summary, refetchSummary };
 };
