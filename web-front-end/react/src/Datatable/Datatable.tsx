@@ -115,7 +115,7 @@ export const Datatable = () => {
 
 	const positionData = GetPositions(selectedId);
 	const tradeData = GetTrades(selectedId);
-	const summaryStats = GetAccountSummary(selectedId);
+	const { stats: summaryStats, refresh: refreshSummary } = GetAccountSummary(selectedId);
 
 	// Reset selection when tenant changes
 	useEffect(() => {
@@ -160,13 +160,14 @@ export const Datatable = () => {
 			socketModule.socket.on(PUBLISH, (data: { topic: string; payload: TradeData | PositionData }) => {
 				if (data.topic === `/accounts/${event.target.value}/trades`) {
 					setTradeRowData((current: TradeData[]) => [...current, data.payload as TradeData]);
+					refreshSummary();
 				}
 				if (data.topic === `/accounts/${event.target.value}/positions`) {
 					setPositionRowData((current: PositionData[]) => [...current, data.payload as PositionData]);
 				}
 			});
 		}
-	}, [selectedId]);
+	}, [selectedId, refreshSummary]);
 
 	useEffect(() => {
 		setPositionRowData(positionData);
@@ -194,7 +195,7 @@ export const Datatable = () => {
 				</CardContent>
 			</Card>
 
-				{/* Summary stat cards */}
+					{/* Summary stat cards */}
 				{hasAccount && (
 					<Grid container spacing={2} sx={{ mb: 3 }}>
 						<Grid item xs={12} sm={6} md={3}>
