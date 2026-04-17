@@ -16,7 +16,7 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import * as socketModule from '../socket';
-import { GetPositions, GetTrades } from '../hooks';
+import { GetAccountSummary, GetPositions, GetTrades } from '../hooks';
 import { CreateAccount, CreateAccountUser, CreateTradeButton } from '../ActionButtons';
 import { ColDef, ICellRendererParams } from 'ag-grid-community';
 import { PositionData, TradeData } from './types';
@@ -112,9 +112,11 @@ export const Datatable = () => {
 	const [positionRowData, setPositionRowData] = useState<PositionData[]>([]);
 	const [selectedId, setSelectedId] = useState<number>(0);
 	const [currentAccount, setCurrentAccount] = useState<string>('');
+	const [summaryRefreshKey, setSummaryRefreshKey] = useState<number>(0);
 
 	const positionData = GetPositions(selectedId);
 	const tradeData = GetTrades(selectedId);
+	const summaryData = GetAccountSummary(selectedId, summaryRefreshKey);
 
 	// Reset selection when tenant changes
 	useEffect(() => {
@@ -159,6 +161,7 @@ export const Datatable = () => {
 			socketModule.socket.on(PUBLISH, (data: { topic: string; payload: TradeData | PositionData }) => {
 				if (data.topic === `/accounts/${event.target.value}/trades`) {
 					setTradeRowData((current: TradeData[]) => [...current, data.payload as TradeData]);
+					setSummaryRefreshKey((k) => k + 1);
 				}
 				if (data.topic === `/accounts/${event.target.value}/positions`) {
 					setPositionRowData((current: PositionData[]) => [...current, data.payload as PositionData]);
@@ -199,33 +202,33 @@ export const Datatable = () => {
 					<Grid item xs={12} sm={6} md={3}>
 						<StatCard
 							title="Total Trades"
-							value={tradeRowData.length}
+							value={summaryData.totalTrades}
 							icon={<TrendingUpIcon sx={{ fontSize: 32 }} />}
 							color="#3b82f6"
 						/>
 					</Grid>
 					<Grid item xs={12} sm={6} md={3}>
 						<StatCard
-							title="Total Positions"
-							value={positionRowData.length}
+							title="Settled Trades"
+							value={summaryData.settledTrades}
 							icon={<BarChartIcon sx={{ fontSize: 32 }} />}
-							color="#8b5cf6"
-						/>
-					</Grid>
-					<Grid item xs={12} sm={6} md={3}>
-						<StatCard
-							title="Account"
-							value={currentAccount ? `#${currentAccount}` : '--'}
-							icon={<AccountBalanceIcon sx={{ fontSize: 32 }} />}
 							color="#10b981"
 						/>
 					</Grid>
 					<Grid item xs={12} sm={6} md={3}>
 						<StatCard
-							title="Live Feed"
-							value="Active"
-							icon={<ShowChartIcon sx={{ fontSize: 32 }} />}
+							title="Pending Trades"
+							value={summaryData.pendingTrades}
+							icon={<AccountBalanceIcon sx={{ fontSize: 32 }} />}
 							color="#f59e0b"
+						/>
+					</Grid>
+					<Grid item xs={12} sm={6} md={3}>
+						<StatCard
+							title="Net Quantity"
+							value={summaryData.netQuantity.toLocaleString()}
+							icon={<ShowChartIcon sx={{ fontSize: 32 }} />}
+							color="#8b5cf6"
 						/>
 					</Grid>
 				</Grid>
