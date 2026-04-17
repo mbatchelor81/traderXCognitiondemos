@@ -112,10 +112,11 @@ export const Datatable = () => {
 	const [positionRowData, setPositionRowData] = useState<PositionData[]>([]);
 	const [selectedId, setSelectedId] = useState<number>(0);
 	const [currentAccount, setCurrentAccount] = useState<string>('');
+	const [summaryRefreshKey, setSummaryRefreshKey] = useState<number>(0);
 
 	const positionData = GetPositions(selectedId);
 	const tradeData = GetTrades(selectedId);
-	const summaryData = GetAccountSummary(selectedId);
+	const summaryData = GetAccountSummary(selectedId, summaryRefreshKey);
 
 	// Reset selection when tenant changes
 	useEffect(() => {
@@ -160,6 +161,7 @@ export const Datatable = () => {
 			socketModule.socket.on(PUBLISH, (data: { topic: string; payload: TradeData | PositionData }) => {
 				if (data.topic === `/accounts/${event.target.value}/trades`) {
 					setTradeRowData((current: TradeData[]) => [...current, data.payload as TradeData]);
+					setSummaryRefreshKey((k) => k + 1);
 				}
 				if (data.topic === `/accounts/${event.target.value}/positions`) {
 					setPositionRowData((current: PositionData[]) => [...current, data.payload as PositionData]);
