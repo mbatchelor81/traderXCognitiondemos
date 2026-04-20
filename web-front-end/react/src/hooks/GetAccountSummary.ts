@@ -26,10 +26,13 @@ export const GetAccountSummary = (accountId: number) => {
 	const [summary, setSummary] = useState<AccountSummary>(emptySummary);
 	const accountIdRef = useRef(accountId);
 	accountIdRef.current = accountId;
+	const controllerRef = useRef<AbortController | null>(null);
 
 	const refetch = useCallback(() => {
 		if (accountIdRef.current === 0) return;
+		controllerRef.current?.abort();
 		const controller = new AbortController();
+		controllerRef.current = controller;
 		fetchWithTenant(
 			`${Environment.account_service_url}/account/${accountIdRef.current}/summary`,
 			{ signal: controller.signal }
@@ -46,7 +49,6 @@ export const GetAccountSummary = (accountId: number) => {
 			.catch(err => {
 				if (err instanceof DOMException && err.name === 'AbortError') return;
 			});
-		return controller;
 	}, []);
 
 	useEffect(() => {
@@ -54,8 +56,8 @@ export const GetAccountSummary = (accountId: number) => {
 			setSummary(emptySummary);
 			return;
 		}
-		const controller = refetch();
-		return () => { controller?.abort(); };
+		refetch();
+		return () => { controllerRef.current?.abort(); };
 	}, [accountId, tenant, refetch]);
 
 	return { summary, refetch };
