@@ -24,39 +24,39 @@ const emptySummary: AccountSummary = {
 export const GetAccountSummary = (accountId: number): { summary: AccountSummary; refetch: () => void } => {
 	const { tenant } = useTenant();
 	const [summary, setSummary] = useState<AccountSummary>(emptySummary);
+	const [fetchKey, setFetchKey] = useState(0);
 
-	const fetchSummary = useCallback(async (signal?: AbortSignal) => {
+	useEffect(() => {
 		if (accountId === 0) {
 			setSummary(emptySummary);
 			return;
 		}
-		try {
-			const response = await fetchWithTenant(
-				`${Environment.account_service_url}/account/${accountId}/summary`,
-				signal ? { signal } : undefined
-			);
-			if (response.ok) {
-				const json = await response.json();
-				if (!signal?.aborted) {
-					setSummary(json);
+		const abortController = new AbortController();
+		const fetchData = async () => {
+			try {
+				const response = await fetchWithTenant(
+					`${Environment.account_service_url}/account/${accountId}/summary`,
+					{ signal: abortController.signal }
+				);
+				if (response.ok) {
+					const json = await response.json();
+					if (!abortController.signal.aborted) {
+						setSummary(json);
+					}
+				}
+			} catch (error) {
+				if (error instanceof DOMException && error.name === 'AbortError') {
+					return;
 				}
 			}
-		} catch (error) {
-			if (error instanceof DOMException && error.name === 'AbortError') {
-				return;
-			}
-		}
-	}, [accountId, tenant]);
-
-	useEffect(() => {
-		const abortController = new AbortController();
-		fetchSummary(abortController.signal);
+		};
+		fetchData();
 		return () => { abortController.abort(); };
-	}, [fetchSummary]);
+	}, [accountId, tenant, fetchKey]);
 
 	const refetch = useCallback(() => {
-		fetchSummary();
-	}, [fetchSummary]);
+		setFetchKey(k => k + 1);
+	}, []);
 
 	return { summary, refetch };
 }
