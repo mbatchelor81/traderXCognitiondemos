@@ -1,0 +1,47 @@
+import { useEffect, useState } from "react";
+import { Environment } from '../env';
+import { fetchWithTenant } from '../fetchWithTenant';
+import { useTenant } from '../TenantContext';
+
+export interface AccountSummaryStats {
+	totalTrades: number;
+	settledTrades: number;
+	pendingTrades: number;
+	totalBuyQuantity: number;
+	totalSellQuantity: number;
+	netQuantity: number;
+}
+
+export const GetAccountSummary = (accountId: number, refreshKey: number = 0) => {
+	const { tenant } = useTenant();
+	const [summary, setSummary] = useState<AccountSummaryStats | null>(null);
+	useEffect(() => {
+		if (accountId === 0) {
+			setSummary(null);
+			return;
+		}
+		const abortController = new AbortController();
+		const fetchData = async () => {
+			try {
+				const response = await fetchWithTenant(
+					`${Environment.account_service_url}/account/${accountId}/summary`,
+					{ signal: abortController.signal }
+				);
+				if (response.ok) {
+					const json = await response.json();
+					if (!abortController.signal.aborted) {
+						setSummary(json.statistics ?? null);
+					}
+				}
+			} catch (error) {
+				if (error instanceof DOMException && error.name === 'AbortError') {
+					return;
+				}
+				return error;
+			}
+		};
+		fetchData();
+		return () => { abortController.abort(); };
+	}, [accountId, tenant, refreshKey]);
+	return summary;
+}
