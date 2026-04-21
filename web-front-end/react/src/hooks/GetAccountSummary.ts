@@ -4,7 +4,7 @@ import { Environment } from '../env';
 import { fetchWithTenant } from '../fetchWithTenant';
 import { useTenant } from '../TenantContext';
 
-export const GetAccountSummary = (accountId: number) => {
+export const GetAccountSummary = (accountId: number, refreshTrigger: number = 0) => {
 	const { tenant } = useTenant();
 	const [summaryData, setSummaryData] = useState<AccountSummaryData | null>(null);
 	useEffect(() => {
@@ -34,6 +34,6 @@ export const GetAccountSummary = (accountId: number) => {
 		};
 		fetchData();
 		return () => { abortController.abort(); };
-	}, [accountId, tenant]);
+	}, [accountId, tenant, refreshTrigger]);
 	return summaryData;
 }
