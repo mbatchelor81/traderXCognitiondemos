@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Environment } from '../env';
 import { fetchWithTenant } from '../fetchWithTenant';
 import { useTenant } from '../TenantContext';
@@ -21,9 +21,27 @@ const DEFAULT_SUMMARY: AccountSummary = {
 	netQuantity: 0,
 };
 
-export const GetAccountSummary = (accountId: number) => {
+export const GetAccountSummary = (accountId: number): { summary: AccountSummary; refetch: () => void } => {
 	const { tenant } = useTenant();
 	const [summary, setSummary] = useState<AccountSummary>(DEFAULT_SUMMARY);
+	const accountIdRef = useRef(accountId);
+	accountIdRef.current = accountId;
+
+	const fetchSummary = useCallback(async () => {
+		if (accountIdRef.current === 0) return;
+		try {
+			const response = await fetchWithTenant(
+				`${Environment.account_service_url}/account/${accountIdRef.current}/summary`
+			);
+			if (response.ok) {
+				const json = await response.json();
+				setSummary(json);
+			}
+		} catch {
+			// Silently handle fetch errors on refetch
+		}
+	}, []);
+
 	useEffect(() => {
 		if (accountId === 0) {
 			setSummary(DEFAULT_SUMMARY);
@@ -52,5 +70,6 @@ export const GetAccountSummary = (accountId: number) => {
 		fetchData();
 		return () => { abortController.abort(); };
 	}, [accountId, tenant]);
-	return summary;
+
+	return { summary, refetch: fetchSummary };
 };
