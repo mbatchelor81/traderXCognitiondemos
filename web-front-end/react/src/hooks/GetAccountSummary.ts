@@ -17,7 +17,7 @@ export const GetAccountSummary = (accountId: number, refreshKey = 0) => {
 			try {
 				const response = await fetchWithTenant(
 					`${Environment.account_service_url}/account/${accountId}/summary`,
-					{ signal: abortController.signal }
+					{ signal: abortController.signal, cache: 'no-store' as RequestCache }
 				);
 				if (response.ok) {
 					const json = await response.json();
