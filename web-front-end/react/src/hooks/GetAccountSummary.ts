@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AccountSummaryData } from "../Datatable/types";
 import { Environment } from '../env';
 import { fetchWithTenant } from '../fetchWithTenant';
@@ -16,6 +16,12 @@ const EMPTY_SUMMARY: AccountSummaryData = {
 export const GetAccountSummary = (accountId: number) => {
 	const { tenant } = useTenant();
 	const [summaryData, setSummaryData] = useState<AccountSummaryData>(EMPTY_SUMMARY);
+	const [refreshKey, setRefreshKey] = useState(0);
+
+	const refetch = useCallback(() => {
+		setRefreshKey(k => k + 1);
+	}, []);
+
 	useEffect(() => {
 		if (accountId === 0) {
 			setSummaryData(EMPTY_SUMMARY);
@@ -43,6 +49,7 @@ export const GetAccountSummary = (accountId: number) => {
 		};
 		fetchData();
 		return () => { abortController.abort(); };
-	}, [accountId, tenant]);
-	return summaryData;
+	}, [accountId, tenant, refreshKey]);
+
+	return { summaryData, refetch };
 }
