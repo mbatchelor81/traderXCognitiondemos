@@ -35,8 +35,8 @@ const SideCellRenderer = (params: ICellRendererParams) => {
 			label={params.value}
 			size="small"
 			sx={{
-				bgcolor: isBuy ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-				color: isBuy ? '#10b981' : '#ef4444',
+				bgcolor: isBuy ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+				color: isBuy ? '#059669' : '#dc2626',
 				fontWeight: 600,
 				fontSize: '0.75rem',
 				height: 24,
@@ -49,11 +49,11 @@ const SideCellRenderer = (params: ICellRendererParams) => {
 const StateCellRenderer = (params: ICellRendererParams) => {
 	if (!params.value) return null;
 	const stateColors: Record<string, { bg: string; color: string; border: string }> = {
-		New: { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', border: 'rgba(59, 130, 246, 0.3)' },
-		Processing: { bg: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: 'rgba(245, 158, 11, 0.3)' },
-		Pending: { bg: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6', border: 'rgba(139, 92, 246, 0.3)' },
-		Settled: { bg: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: 'rgba(16, 185, 129, 0.3)' },
-		Cancelled: { bg: 'rgba(107, 114, 128, 0.15)', color: '#6b7280', border: 'rgba(107, 114, 128, 0.3)' },
+		New: { bg: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', border: 'rgba(59, 130, 246, 0.3)' },
+		Processing: { bg: 'rgba(245, 158, 11, 0.1)', color: '#d97706', border: 'rgba(245, 158, 11, 0.3)' },
+		Pending: { bg: 'rgba(139, 92, 246, 0.1)', color: '#7c3aed', border: 'rgba(139, 92, 246, 0.3)' },
+		Settled: { bg: 'rgba(16, 185, 129, 0.1)', color: '#059669', border: 'rgba(16, 185, 129, 0.3)' },
+		Cancelled: { bg: 'rgba(107, 114, 128, 0.1)', color: '#4b5563', border: 'rgba(107, 114, 128, 0.3)' },
 	};
 	const style = stateColors[params.value] || stateColors['New'];
 	return (
@@ -75,7 +75,7 @@ const StateCellRenderer = (params: ICellRendererParams) => {
 const QuantityCellRenderer = (params: ICellRendererParams) => {
 	if (params.value == null) return null;
 	const val = Number(params.value);
-	const color = val > 0 ? '#10b981' : val < 0 ? '#ef4444' : '#e5e7eb';
+	const color = val > 0 ? '#059669' : val < 0 ? '#dc2626' : '#1f2937';
 	return <span style={{ color, fontWeight: 500 }}>{val.toLocaleString()}</span>;
 };
 
@@ -87,14 +87,14 @@ interface StatCardProps {
 }
 
 const StatCard = ({ title, value, icon, color }: StatCardProps) => (
-	<Card sx={{ bgcolor: '#111827', border: '1px solid rgba(255,255,255,0.06)' }}>
+	<Card sx={{ bgcolor: '#ffffff', border: '1px solid rgba(0,0,0,0.08)' }}>
 		<CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
 			<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 				<Box>
 					<Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>
 						{title}
 					</Typography>
-					<Typography variant="h5" sx={{ fontWeight: 700, color: '#e5e7eb', mt: 0.5 }}>
+					<Typography variant="h5" sx={{ fontWeight: 700, color: '#1f2937', mt: 0.5 }}>
 						{value}
 					</Typography>
 				</Box>
@@ -179,7 +179,7 @@ export const Datatable = () => {
 	return (
 		<Box sx={{ p: 3 }}>
 			{/* Account selector and action buttons row */}
-			<Card sx={{ mb: 3, bgcolor: '#111827', border: '1px solid rgba(255,255,255,0.06)' }}>
+			<Card sx={{ mb: 3, bgcolor: '#ffffff', border: '1px solid rgba(0,0,0,0.08)' }}>
 				<CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
 					<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
 						<Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -242,14 +242,14 @@ export const Datatable = () => {
 						alignItems: 'center',
 						justifyContent: 'center',
 						minHeight: '50vh',
-						color: '#4b5563',
+						color: '#9ca3af',
 					}}
 				>
 					<ShowChartIcon sx={{ fontSize: 64, mb: 2, opacity: 0.3 }} />
 					<Typography variant="h6" sx={{ fontWeight: 600, color: '#6b7280' }}>
 						No Account Selected
 					</Typography>
-					<Typography variant="body2" sx={{ color: '#4b5563', mt: 1 }}>
+					<Typography variant="body2" sx={{ color: '#9ca3af', mt: 1 }}>
 						Select an account from the dropdown above to view trades and positions
 					</Typography>
 				</Box>
@@ -257,18 +257,18 @@ export const Datatable = () => {
 				<Grid container spacing={3}>
 					{/* Trade Blotter */}
 					<Grid item xs={12} lg={7}>
-						<Card sx={{ bgcolor: '#111827', border: '1px solid rgba(255,255,255,0.06)', height: '100%' }}>
+						<Card sx={{ bgcolor: '#ffffff', border: '1px solid rgba(0,0,0,0.08)', height: '100%' }}>
 							<CardContent sx={{ p: 0, '&:last-child': { pb: 0 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
-								<Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+								<Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
 										<TrendingUpIcon sx={{ fontSize: 18, color: '#3b82f6' }} />
-										<Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#e5e7eb' }}>
+										<Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#1f2937' }}>
 											Trade Blotter
 										</Typography>
 									</Box>
-									<Chip label={`${tradeRowData.length} trades`} size="small" sx={{ bgcolor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', fontSize: '0.7rem', height: 22 }} />
+									<Chip label={`${tradeRowData.length} trades`} size="small" sx={{ bgcolor: 'rgba(59, 130, 246, 0.08)', color: '#2563eb', fontSize: '0.7rem', height: 22 }} />
 								</Box>
-								<Box className="ag-theme-alpine-dark" sx={{ flex: 1, minHeight: 400 }}>
+								<Box className="ag-theme-alpine" sx={{ flex: 1, minHeight: 400 }}>
 									<AgGridReact
 										rowData={tradeRowData}
 										columnDefs={tradeColumnDefs}
@@ -283,18 +283,18 @@ export const Datatable = () => {
 
 					{/* Position Blotter */}
 					<Grid item xs={12} lg={5}>
-						<Card sx={{ bgcolor: '#111827', border: '1px solid rgba(255,255,255,0.06)', height: '100%' }}>
+						<Card sx={{ bgcolor: '#ffffff', border: '1px solid rgba(0,0,0,0.08)', height: '100%' }}>
 							<CardContent sx={{ p: 0, '&:last-child': { pb: 0 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
-								<Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+								<Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
 										<BarChartIcon sx={{ fontSize: 18, color: '#8b5cf6' }} />
-										<Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#e5e7eb' }}>
+										<Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#1f2937' }}>
 											Position Blotter
 										</Typography>
 									</Box>
-									<Chip label={`${positionRowData.length} positions`} size="small" sx={{ bgcolor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', fontSize: '0.7rem', height: 22 }} />
+									<Chip label={`${positionRowData.length} positions`} size="small" sx={{ bgcolor: 'rgba(139, 92, 246, 0.08)', color: '#7c3aed', fontSize: '0.7rem', height: 22 }} />
 								</Box>
-								<Box className="ag-theme-alpine-dark" sx={{ flex: 1, minHeight: 400 }}>
+								<Box className="ag-theme-alpine" sx={{ flex: 1, minHeight: 400 }}>
 									<AgGridReact
 										rowData={positionRowData}
 										columnDefs={positionColumnDefs}

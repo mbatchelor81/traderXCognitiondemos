@@ -1,7 +1,7 @@
-/* Global styles for TraderX dark trading UI */
+/* Global styles for TraderX light trading UI */
 
 body {
-  background-color: #0a0e17;
+  background-color: #f8fafc;
   margin: 0;
   padding: 0;
 }
@@ -13,29 +13,29 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0a0e17;
+  background: #f1f5f9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2d3748;
+  background: #cbd5e1;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #4a5568;
+  background: #94a3b8;
 }
 
-/* ag-Grid dark theme overrides */
-.ag-theme-alpine-dark {
-  --ag-background-color: #111827;
-  --ag-header-background-color: #0d1321;
-  --ag-odd-row-background-color: #0f1729;
-  --ag-row-hover-color: rgba(59, 130, 246, 0.08);
-  --ag-selected-row-background-color: rgba(59, 130, 246, 0.15);
-  --ag-border-color: rgba(255, 255, 255, 0.06);
-  --ag-header-foreground-color: #9ca3af;
-  --ag-foreground-color: #e5e7eb;
-  --ag-secondary-foreground-color: #9ca3af;
+/* ag-Grid light theme overrides */
+.ag-theme-alpine {
+  --ag-background-color: #ffffff;
+  --ag-header-background-color: #f8fafc;
+  --ag-odd-row-background-color: #f9fafb;
+  --ag-row-hover-color: rgba(59, 130, 246, 0.06);
+  --ag-selected-row-background-color: rgba(59, 130, 246, 0.1);
+  --ag-border-color: rgba(0, 0, 0, 0.08);
+  --ag-header-foreground-color: #6b7280;
+  --ag-foreground-color: #1f2937;
+  --ag-secondary-foreground-color: #6b7280;
   --ag-font-family: 'Inter', 'Roboto', sans-serif;
   --ag-font-size: 13px;
   --ag-header-height: 40px;
@@ -43,18 +43,18 @@ body {
   --ag-cell-horizontal-padding: 12px;
 }
 
-.ag-theme-alpine-dark .ag-header-cell {
+.ag-theme-alpine .ag-header-cell {
   font-weight: 600;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.ag-theme-alpine-dark .ag-row {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+.ag-theme-alpine .ag-row {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.ag-theme-alpine-dark .ag-cell {
+.ag-theme-alpine .ag-cell {
   line-height: 36px;
 }
 

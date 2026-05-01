@@ -117,8 +117,8 @@ export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
 				fullWidth
 				PaperProps={{
 					sx: {
-						bgcolor: '#111827',
-						border: '1px solid rgba(255,255,255,0.1)',
+						bgcolor: '#ffffff',
+						border: '1px solid rgba(0,0,0,0.12)',
 						borderRadius: 2,
 					},
 				}}
@@ -127,7 +127,7 @@ export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
 					<Typography variant="h6" sx={{ fontWeight: 600 }}>
 						Create Trade
 					</Typography>
-					<IconButton onClick={handleClose} size="small" sx={{ color: '#6b7280' }}>
+					<IconButton onClick={handleClose} size="small" sx={{ color: '#9ca3af' }}>
 						<CloseIcon />
 					</IconButton>
 				</DialogTitle>
@@ -158,7 +158,7 @@ export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
 												<Typography variant="body2" sx={{ fontWeight: 600 }}>
 													{option.ticker}
 												</Typography>
-												<Typography variant="caption" sx={{ color: '#6b7280' }}>
+												<Typography variant="caption" sx={{ color: '#9ca3af' }}>
 													{option.companyName}
 												</Typography>
 											</Box>
@@ -178,7 +178,7 @@ export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
 							</Grid>
 							<Grid item xs={12} sm={6}>
 								<Box>
-									<Typography variant="caption" sx={{ color: '#9ca3af', mb: 1, display: 'block' }}>
+									<Typography variant="caption" sx={{ color: '#6b7280', mb: 1, display: 'block' }}>
 										Side
 									</Typography>
 									<ToggleButtonGroup
@@ -191,13 +191,13 @@ export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
 										<ToggleButton
 											value="Buy"
 											sx={{
-												color: '#10b981',
-												borderColor: 'rgba(255,255,255,0.15)',
+												color: '#059669',
+												borderColor: 'rgba(0,0,0,0.15)',
 												'&.Mui-selected': {
-													bgcolor: 'rgba(16, 185, 129, 0.15)',
-													color: '#10b981',
+													bgcolor: 'rgba(16, 185, 129, 0.1)',
+													color: '#059669',
 													borderColor: '#10b981',
-													'&:hover': { bgcolor: 'rgba(16, 185, 129, 0.25)' },
+													'&:hover': { bgcolor: 'rgba(16, 185, 129, 0.2)' },
 												},
 											}}
 										>
@@ -206,13 +206,13 @@ export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
 										<ToggleButton
 											value="Sell"
 											sx={{
-												color: '#ef4444',
-												borderColor: 'rgba(255,255,255,0.15)',
+												color: '#dc2626',
+												borderColor: 'rgba(0,0,0,0.15)',
 												'&.Mui-selected': {
-													bgcolor: 'rgba(239, 68, 68, 0.15)',
-													color: '#ef4444',
+													bgcolor: 'rgba(239, 68, 68, 0.1)',
+													color: '#dc2626',
 													borderColor: '#ef4444',
-													'&:hover': { bgcolor: 'rgba(239, 68, 68, 0.25)' },
+													'&:hover': { bgcolor: 'rgba(239, 68, 68, 0.2)' },
 												},
 											}}
 										>
@@ -226,7 +226,7 @@ export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
 				</DialogContent>
 
 				<DialogActions sx={{ px: 3, pb: 2.5, pt: 1 }}>
-					<Button onClick={handleClose} sx={{ color: '#9ca3af' }}>
+					<Button onClick={handleClose} sx={{ color: '#6b7280' }}>
 						Cancel
 					</Button>
 					<Button
