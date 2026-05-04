@@ -76,6 +76,13 @@ def update_account(body: AccountCreate, request: Request,
                    db: Session = Depends(get_db)):
     """Update an existing account."""
     tenant_id = get_tenant_from_request(request)
+    is_update = (body.id is not None
+                 and account_service.get_account_by_id(db, body.id, tenant_id) is not None)
+    if not is_update and not check_tenant_account_limit(db, tenant_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Account limit reached for this tenant."
+        )
     account = account_service.upsert_account(
         db, body.id, body.displayName, tenant_id
     )
