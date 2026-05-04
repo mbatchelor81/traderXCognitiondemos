@@ -22,7 +22,6 @@ class Position(Base):
     def to_dict(self):
         return {
             "accountId": self.account_id,
-            "tenant_id": self.tenant_id,
             "security": self.security,
             "quantity": self.quantity,
             "updated": self.updated.isoformat() if self.updated else None,

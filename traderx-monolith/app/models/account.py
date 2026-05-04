@@ -18,7 +18,6 @@ class Account(Base):
     def to_dict(self):
         return {
             "id": self.id,
-            "tenant_id": self.tenant_id,
             "displayName": self.display_name,
         }
 
@@ -33,6 +32,5 @@ class AccountUser(Base):
     def to_dict(self):
         return {
             "accountId": self.account_id,
-            "tenant_id": self.tenant_id,
             "username": self.username,
         }

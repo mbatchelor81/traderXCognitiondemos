@@ -26,7 +26,6 @@ class Trade(Base):
     def to_dict(self):
         return {
             "id": self.id,
-            "tenant_id": self.tenant_id,
             "accountId": self.account_id,
             "security": self.security,
             "side": self.side,

@@ -152,7 +152,7 @@ def validate_trade_request(db: Session, account_id: int, security: str,
 
     # Validate account exists (cross-domain query)
     if not validate_account_exists(db, account_id, tenant_id):
-        error = f"Account {account_id} not found for tenant {tenant_id}."
+        error = f"Account {account_id} not found."
         logger.error(error)
         return False, error
 
@@ -165,8 +165,7 @@ def validate_trade_request(db: Session, account_id: int, security: str,
     # Tenant-specific validation rules
     tenant_sides = TENANT_ALLOWED_SIDES.get(tenant_id, ["Buy", "Sell"])
     if side not in tenant_sides:
-        error = (f"Trade side '{side}' not allowed for tenant {tenant_id}. "
-                 f"Allowed: {tenant_sides}")
+        error = f"Trade side '{side}' is not allowed."
         logger.error(error)
         return False, error
 
@@ -176,12 +175,11 @@ def validate_trade_request(db: Session, account_id: int, security: str,
             db, account_id, security, tenant_id
         )
         if current_position < quantity:
-            logger.warning(
-                "Sell quantity %d exceeds current position %d for "
-                "account %d security %s tenant %s. Allowing trade but logging warning.",
-                quantity, current_position, account_id, security, tenant_id
-            )
-            # Note: we allow the trade but log the warning (realistic legacy behavior)
+            error = (f"Sell quantity {quantity} exceeds current position "
+                     f"{current_position} for account {account_id} "
+                     f"security {security}.")
+            logger.error(error)
+            return False, error
 
     logger.info("Trade request validated successfully")
     return True, ""

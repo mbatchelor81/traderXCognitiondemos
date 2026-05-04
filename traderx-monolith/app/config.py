@@ -27,7 +27,7 @@ KNOWN_TENANTS = ["acme_corp", "globex_inc", "initech"]
 # =============================================================================
 SOCKETIO_ADDRESS = os.getenv("SOCKETIO_ADDRESS", "http://localhost:8000")
 SOCKETIO_ASYNC_MODE = "asgi"
-SOCKETIO_CORS_ALLOWED = os.getenv("SOCKETIO_CORS_ALLOWED", "*")
+SOCKETIO_CORS_ALLOWED = os.getenv("SOCKETIO_CORS_ALLOWED", "http://localhost:3000")
 
 # =============================================================================
 # Reference Data Configuration
@@ -50,7 +50,7 @@ PEOPLE_DATA_FILE = os.getenv(
 # =============================================================================
 APP_PORT = int(os.getenv("APP_PORT", "8000"))
 APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
-DEBUG = os.getenv("DEBUG", "true").lower() == "true"
+DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 APP_TITLE = "TraderX Monolith API"
 APP_VERSION = "1.0.0"
@@ -59,7 +59,8 @@ APP_DESCRIPTION = "Monolithic backend replacing all TraderX microservices"
 # =============================================================================
 # CORS Configuration
 # =============================================================================
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
+# Production should use an explicit origin allowlist via CORS_ORIGINS env var
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 CORS_ALLOW_METHODS = ["*"]
 CORS_ALLOW_HEADERS = ["*"]
 
