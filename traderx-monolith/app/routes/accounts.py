@@ -58,7 +58,9 @@ def create_account(body: AccountCreate, request: Request,
                    db: Session = Depends(get_db)):
     """Create a new account."""
     tenant_id = get_tenant_from_request(request)
-    if not check_tenant_account_limit(db, tenant_id):
+    is_update = (body.id is not None
+                 and account_service.get_account_by_id(db, body.id, tenant_id) is not None)
+    if not is_update and not check_tenant_account_limit(db, tenant_id):
         raise HTTPException(
             status_code=403,
             detail="Account limit reached for this tenant."
