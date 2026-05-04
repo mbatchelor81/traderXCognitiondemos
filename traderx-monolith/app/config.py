@@ -59,7 +59,8 @@ APP_DESCRIPTION = "Monolithic backend replacing all TraderX microservices"
 # =============================================================================
 # CORS Configuration
 # =============================================================================
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
+# Production should use an explicit origin allowlist via CORS_ORIGINS env var
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 CORS_ALLOW_METHODS = ["*"]
 CORS_ALLOW_HEADERS = ["*"]
 
