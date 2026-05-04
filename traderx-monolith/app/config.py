@@ -50,7 +50,7 @@ PEOPLE_DATA_FILE = os.getenv(
 # =============================================================================
 APP_PORT = int(os.getenv("APP_PORT", "8000"))
 APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
-DEBUG = os.getenv("DEBUG", "true").lower() == "true"
+DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 APP_TITLE = "TraderX Monolith API"
 APP_VERSION = "1.0.0"
