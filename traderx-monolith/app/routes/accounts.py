@@ -19,6 +19,7 @@ from app.models.account import Account, AccountUser
 from app.models.position import Position
 from app.services import account_service
 from app.services.people_service import validate_person
+from app.services.trade_processor import check_tenant_account_limit
 from app.utils.helpers import get_tenant_from_request, log_audit_event
 
 logger = logging.getLogger(__name__)
@@ -57,6 +58,11 @@ def create_account(body: AccountCreate, request: Request,
                    db: Session = Depends(get_db)):
     """Create a new account."""
     tenant_id = get_tenant_from_request(request)
+    if not check_tenant_account_limit(db, tenant_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Account limit reached for this tenant."
+        )
     account = account_service.upsert_account(
         db, body.id, body.displayName, tenant_id
     )
