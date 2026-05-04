@@ -23,7 +23,7 @@ SENTRY_DSN = os.getenv("SENTRY_DSN", "")
 if SENTRY_DSN:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
-        send_default_pii=True,
+        send_default_pii=False,
         traces_sample_rate=1.0,
         enable_logs=True,
     )
@@ -121,10 +121,11 @@ def create_app() -> FastAPI:
     def health():
         return {"status": "UP"}
 
-    @app.get("/sentry-debug")
-    async def trigger_error():
-        """Deliberately trigger an error for Sentry demo purposes."""
-        division_by_zero = 1 / 0  # noqa: F841
+    if DEBUG:
+        @app.get("/sentry-debug")
+        async def trigger_error():
+            """Deliberately trigger an error for Sentry demo purposes."""
+            division_by_zero = 1 / 0  # noqa: F841
 
     logger.info("FastAPI application created with all routes")
     return app
