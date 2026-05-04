@@ -27,7 +27,7 @@ KNOWN_TENANTS = ["acme_corp", "globex_inc", "initech"]
 # =============================================================================
 SOCKETIO_ADDRESS = os.getenv("SOCKETIO_ADDRESS", "http://localhost:8000")
 SOCKETIO_ASYNC_MODE = "asgi"
-SOCKETIO_CORS_ALLOWED = os.getenv("SOCKETIO_CORS_ALLOWED", "*")
+SOCKETIO_CORS_ALLOWED = os.getenv("SOCKETIO_CORS_ALLOWED", "http://localhost:3000")
 
 # =============================================================================
 # Reference Data Configuration
