@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Environment } from '../env';
 import { fetchWithTenant } from '../fetchWithTenant';
 import { useTenant } from '../TenantContext';
@@ -25,9 +25,19 @@ const defaultSummary: AccountSummary = {
 	},
 };
 
-export const GetAccountSummary = (accountId: number): AccountSummary => {
+export interface AccountSummaryResult {
+	summary: AccountSummary;
+	refetch: () => void;
+}
+
+export const GetAccountSummary = (accountId: number): AccountSummaryResult => {
 	const { tenant } = useTenant();
 	const [summary, setSummary] = useState<AccountSummary>(defaultSummary);
+	const [refreshKey, setRefreshKey] = useState(0);
+
+	const refetch = useCallback(() => {
+		setRefreshKey(k => k + 1);
+	}, []);
 
 	useEffect(() => {
 		if (accountId === 0) {
@@ -56,7 +66,7 @@ export const GetAccountSummary = (accountId: number): AccountSummary => {
 		};
 		fetchData();
 		return () => { abortController.abort(); };
-	}, [accountId, tenant]);
+	}, [accountId, tenant, refreshKey]);
 
-	return summary;
+	return { summary, refetch };
 };
