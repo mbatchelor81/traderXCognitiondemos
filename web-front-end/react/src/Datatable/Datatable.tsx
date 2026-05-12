@@ -167,7 +167,7 @@ export const Datatable = () => {
 				}
 			});
 		}
-	}, [selectedId]);
+	}, [selectedId, refetchSummary]);
 
 	useEffect(() => {
 		setPositionRowData(positionData);
