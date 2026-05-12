@@ -39,7 +39,7 @@ TRADERX_SYSTEM = "https://traderx.example.com/fhir"
 _TRADE_STATE_TO_EOB_STATUS: dict[str, str] = {
     "New": "active",
     "Processing": "active",
-    "Settled": "complete",
+    "Settled": "active",
     "Cancelled": "cancelled",
 }
 

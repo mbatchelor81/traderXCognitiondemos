@@ -57,9 +57,9 @@ class TestMapTradeToEob:
         eob = map_trade_to_eob(_make_trade(state="Processing"), _make_account())
         assert eob.status == "active"
 
-    def test_status_complete_for_settled_trade(self):
+    def test_status_active_for_settled_trade(self):
         eob = map_trade_to_eob(_make_trade(state="Settled"), _make_account())
-        assert eob.status == "complete"
+        assert eob.status == "active"
 
     def test_outcome_complete_for_settled(self):
         eob = map_trade_to_eob(_make_trade(state="Settled"), _make_account())
