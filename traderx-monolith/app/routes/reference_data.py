@@ -4,7 +4,6 @@ Delegates to reference_data_service for all business logic.
 """
 
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 

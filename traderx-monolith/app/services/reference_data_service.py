@@ -36,10 +36,8 @@ def _ensure_loaded(file_path: Optional[str] = None):
                      len(stocks), file_path)
     except FileNotFoundError:
         logger.error("Stock data file not found: %s", file_path)
-        _stocks = []
     except Exception as e:
         logger.error("Error loading stock data: %s", str(e))
-        _stocks = []
 
 
 def get_all_stocks() -> List[Stock]:
