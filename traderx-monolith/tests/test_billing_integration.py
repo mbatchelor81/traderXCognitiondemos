@@ -9,6 +9,7 @@ server responses, then exercises the FastAPI endpoints end-to-end.
 import json
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from unittest.mock import patch
 from urllib.parse import urlparse, parse_qs
 
 import pytest
@@ -68,6 +69,15 @@ def mock_fhir_server():
     thread.start()
     yield f"http://127.0.0.1:{port}"
     server.shutdown()
+
+
+@pytest.fixture(autouse=True)
+def _allow_server_url_override():
+    """Enable server_url override for integration tests with mock server."""
+    with patch(
+        "app.services.billing_code_validator.FHIR_ALLOW_SERVER_URL_OVERRIDE", True
+    ):
+        yield
 
 
 @pytest.fixture()

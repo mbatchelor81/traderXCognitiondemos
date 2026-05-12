@@ -14,6 +14,7 @@ import httpx
 from app.config import (
     BILLING_CODE_SYSTEMS,
     BILLING_PROFILES,
+    FHIR_ALLOW_SERVER_URL_OVERRIDE,
     FHIR_TERMINOLOGY_SERVER_URL,
     FHIR_VALIDATION_TIMEOUT,
 )
@@ -108,7 +109,10 @@ def _validate_code_against_server(
             timeout=FHIR_VALIDATION_TIMEOUT,
         )
         if response.status_code == 200:
-            data = response.json()
+            try:
+                data = response.json()
+            except ValueError:
+                return False, "Terminology server returned invalid JSON"
             for param in data.get("parameter", []):
                 if param.get("name") == "result":
                     return param.get("valueBoolean", False), "Valid"
@@ -118,6 +122,13 @@ def _validate_code_against_server(
         return False, "Terminology server request timed out"
     except httpx.RequestError as exc:
         return False, f"Terminology server connection error: {exc}"
+
+
+def _resolve_server_url(server_url: Optional[str]) -> str:
+    """Resolve the FHIR server URL, ignoring overrides when not allowed."""
+    if server_url is not None and FHIR_ALLOW_SERVER_URL_OVERRIDE:
+        return server_url
+    return FHIR_TERMINOLOGY_SERVER_URL
 
 
 def validate_coded_entry(
@@ -132,12 +143,12 @@ def validate_coded_entry(
         code: The billing code to validate (e.g., "A01.0", "99213").
         system_name: The code system name (e.g., "ICD-10", "CPT").
         server_url: Optional override for the FHIR terminology server URL.
+            Only used when FHIR_ALLOW_SERVER_URL_OVERRIDE is True.
 
     Returns:
         Tuple of (is_valid, message).
     """
-    if server_url is None:
-        server_url = FHIR_TERMINOLOGY_SERVER_URL
+    server_url = _resolve_server_url(server_url)
 
     system_url = _resolve_system_url(system_name)
     if system_url is None:
@@ -166,8 +177,7 @@ def validate_composition(
     Returns:
         ValidationResult with aggregated pass/fail and error details.
     """
-    if server_url is None:
-        server_url = FHIR_TERMINOLOGY_SERVER_URL
+    server_url = _resolve_server_url(server_url)
 
     result = ValidationResult()
 

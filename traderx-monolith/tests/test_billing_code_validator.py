@@ -8,6 +8,7 @@ import pytest
 from app.services.billing_code_validator import (
     ValidationError,
     ValidationResult,
+    _resolve_server_url,
     batch_validate,
     get_available_profiles,
     get_profile,
@@ -294,3 +295,50 @@ def test_validation_error_to_dict():
     assert d["system"] == "http://hl7.org/fhir/sid/icd-10-cm"
     assert d["system_name"] == "ICD-10"
     assert d["message"] == "Valid"
+
+
+# =============================================================================
+# Invalid JSON response handling tests
+# =============================================================================
+
+@patch("app.services.billing_code_validator.httpx.get")
+def test_validate_code_invalid_json_response(mock_get):
+    resp = MagicMock(spec=httpx.Response)
+    resp.status_code = 200
+    resp.json.side_effect = ValueError("No JSON")
+    mock_get.return_value = resp
+    is_valid, message = validate_coded_entry("A01.0", "ICD-10")
+    assert is_valid is False
+    assert "invalid JSON" in message
+
+
+# =============================================================================
+# SSRF protection tests
+# =============================================================================
+
+def test_resolve_server_url_override_disabled():
+    """When override is disabled, custom server_url is ignored."""
+    with patch(
+        "app.services.billing_code_validator.FHIR_ALLOW_SERVER_URL_OVERRIDE", False
+    ):
+        result = _resolve_server_url("http://evil.internal:8080")
+        assert result != "http://evil.internal:8080"
+
+
+def test_resolve_server_url_override_enabled():
+    """When override is enabled, custom server_url is used."""
+    with patch(
+        "app.services.billing_code_validator.FHIR_ALLOW_SERVER_URL_OVERRIDE", True
+    ):
+        result = _resolve_server_url("http://custom-server:9999")
+        assert result == "http://custom-server:9999"
+
+
+def test_resolve_server_url_none_always_uses_default():
+    """When server_url is None, always use the configured default."""
+    with patch(
+        "app.services.billing_code_validator.FHIR_ALLOW_SERVER_URL_OVERRIDE", True
+    ):
+        from app.config import FHIR_TERMINOLOGY_SERVER_URL
+        result = _resolve_server_url(None)
+        assert result == FHIR_TERMINOLOGY_SERVER_URL
