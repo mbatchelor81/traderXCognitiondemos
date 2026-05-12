@@ -124,3 +124,41 @@ def set_current_tenant(tenant_id):
     CURRENT_TENANT = tenant_id
     if tenant_id not in KNOWN_TENANTS:
         KNOWN_TENANTS.append(tenant_id)
+
+
+# =============================================================================
+# FHIR Billing Validation Configuration
+# =============================================================================
+FHIR_TERMINOLOGY_SERVER_URL = os.getenv(
+    "FHIR_TERMINOLOGY_SERVER_URL", "https://tx.fhir.org/r4"
+)
+
+BILLING_CODE_SYSTEMS = {
+    "ICD-10": "http://hl7.org/fhir/sid/icd-10-cm",
+    "CPT": "http://www.ama-assn.org/go/cpt",
+    "HCPCS": "https://www.cms.gov/Medicare/Coding/HCPCSReleaseCodeSets",
+    "SNOMED-CT": "http://snomed.info/sct",
+}
+
+BILLING_PROFILES = {
+    "us-claims": {
+        "name": "US Claims",
+        "description": "Standard US medical claims billing profile",
+        "required_code_systems": ["ICD-10", "CPT"],
+        "optional_code_systems": ["HCPCS", "SNOMED-CT"],
+    },
+    "us-professional": {
+        "name": "US Professional Claims",
+        "description": "US professional/physician billing profile",
+        "required_code_systems": ["ICD-10", "CPT", "HCPCS"],
+        "optional_code_systems": ["SNOMED-CT"],
+    },
+    "clinical-coding": {
+        "name": "Clinical Coding",
+        "description": "Clinical terminology validation profile",
+        "required_code_systems": ["SNOMED-CT", "ICD-10"],
+        "optional_code_systems": ["CPT"],
+    },
+}
+
+FHIR_VALIDATION_TIMEOUT = int(os.getenv("FHIR_VALIDATION_TIMEOUT", "10"))

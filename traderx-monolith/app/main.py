@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import *  # noqa: F401,F403 — intentional global config import
 from app.middleware import TenantMiddleware
-from app.routes import accounts, trades, positions, people, reference_data
+from app.routes import accounts, billing, trades, positions, people, reference_data
 from app.services.trade_processor import set_socketio_server
 
 # =============================================================================
@@ -104,6 +104,7 @@ def create_app() -> FastAPI:
 
     # Include routers
     app.include_router(accounts.router, tags=["Accounts"])
+    app.include_router(billing.router, tags=["Billing Validation"])
     app.include_router(trades.router, tags=["Trades"])
     app.include_router(positions.router, tags=["Positions"])
     app.include_router(people.router, tags=["People"])
