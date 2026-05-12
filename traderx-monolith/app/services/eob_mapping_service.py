@@ -36,6 +36,20 @@ logger = logging.getLogger(__name__)
 FHIR_EOB_SYSTEM = "http://terminology.hl7.org/CodeSystem/claim-type"
 TRADERX_SYSTEM = "https://traderx.example.com/fhir"
 
+_TRADE_STATE_TO_EOB_STATUS: dict[str, str] = {
+    "New": "active",
+    "Processing": "active",
+    "Settled": "complete",
+    "Cancelled": "cancelled",
+}
+
+_TRADE_STATE_TO_EOB_OUTCOME: dict[str, str] = {
+    "New": "queued",
+    "Processing": "queued",
+    "Settled": "complete",
+    "Cancelled": "error",
+}
+
 
 # =============================================================================
 # Trade → EOB Mapping
@@ -83,7 +97,7 @@ def map_trade_to_eob(trade: Trade, account: Account) -> ExplanationOfBenefit:
             system=f"{TRADERX_SYSTEM}/trade-id",
             value=str(trade.id),
         )],
-        status="active" if trade.state in ("New", "Processing") else "complete",
+        status=_TRADE_STATE_TO_EOB_STATUS.get(trade.state, "active"),
         type=eob_type,
         use="claim",
         patient=FhirReference(
@@ -116,7 +130,7 @@ def map_trade_to_eob(trade: Trade, account: Account) -> ExplanationOfBenefit:
                 display=account.display_name,
             ),
         ),
-        outcome="complete" if trade.state == "Settled" else "queued",
+        outcome=_TRADE_STATE_TO_EOB_OUTCOME.get(trade.state, "queued"),
         insurance=[EobInsurance(
             focal=True,
             coverage=FhirReference(

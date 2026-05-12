@@ -106,3 +106,11 @@ class TestMapTradeToEob:
             _make_account(id=99, display_name=None),
         )
         assert eob.patient.display == "Account 99"
+
+    def test_status_cancelled_for_cancelled_trade(self):
+        eob = map_trade_to_eob(_make_trade(state="Cancelled"), _make_account())
+        assert eob.status == "cancelled"
+
+    def test_outcome_error_for_cancelled_trade(self):
+        eob = map_trade_to_eob(_make_trade(state="Cancelled"), _make_account())
+        assert eob.outcome == "error"
