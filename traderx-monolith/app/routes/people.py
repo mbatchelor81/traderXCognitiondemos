@@ -3,15 +3,15 @@ People endpoints.
 Ported from people-service .NET implementation (PeopleService.Core).
 """
 
-import logging
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
 from app.config import *  # noqa: F401,F403 — intentional global config import
 from app.services import people_service
+from app.utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter()
 

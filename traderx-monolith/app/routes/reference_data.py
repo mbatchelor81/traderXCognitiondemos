@@ -3,14 +3,13 @@ Reference data (stocks) endpoints.
 Ported from reference-data Node.js/NestJS implementation.
 """
 
-import logging
-
 from fastapi import APIRouter, HTTPException
 
 from app.config import *  # noqa: F401,F403 — intentional global config import
 from app.utils.helpers import load_stocks_from_csv, find_stock_by_ticker
+from app.utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter()
 

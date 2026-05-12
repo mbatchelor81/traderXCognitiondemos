@@ -6,7 +6,6 @@ NOTE: Some endpoints use the service layer, others bypass it with inline
 SQLAlchemy queries — intentionally inconsistent (architectural smell).
 """
 
-import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -20,8 +19,9 @@ from app.models.position import Position
 from app.services import account_service
 from app.services.people_service import validate_person
 from app.utils.helpers import get_tenant_from_request, log_audit_event
+from app.utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter()
 

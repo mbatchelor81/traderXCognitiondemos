@@ -20,7 +20,6 @@ account_service, and account_service imports from here (count_trades_for_account
 Resolved at runtime via the function being defined here and lazily imported there.
 """
 
-import logging
 import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
@@ -45,8 +44,9 @@ from app.utils.helpers import (
     validate_trade_state,
     safe_int,
 )
+from app.utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Module-level Socket.io server reference — set by main.py at startup
 _sio = None
@@ -56,7 +56,7 @@ def set_socketio_server(sio):
     """Set the Socket.io server instance. Called once at app startup."""
     global _sio
     _sio = sio
-    logger.info("Socket.io server reference set in trade_processor")
+    logger.info("socketio_server_set")
 
 
 def get_socketio_server():
@@ -75,18 +75,26 @@ def validate_account_exists(db: Session, account_id: int,
     This is a cross-domain query — intentional architectural smell.
     The trade processor should not directly access account data.
     """
-    logger.debug("Validating account %d for tenant %s", account_id, tenant_id)
+    logger.debug("account_validation_start", extra={
+        "account_id": account_id, "tenant_id": tenant_id,
+    })
     account = db.query(Account).filter(
         Account.id == account_id,
         Account.tenant_id == tenant_id
     ).first()
 
     if account is None:
-        logger.warning("Account %d not found for tenant %s",
-                       account_id, tenant_id)
+        logger.warning("trade_validation_failed", extra={
+            "reason": "account_not_found",
+            "account_id": account_id, "tenant_id": tenant_id,
+        })
         return False
 
-    logger.info("Account %d validated: %s", account_id, account.display_name)
+    logger.info("account_validated", extra={
+        "account_id": account_id,
+        "display_name": account.display_name,
+        "tenant_id": tenant_id,
+    })
     return True
 
 
@@ -102,12 +110,17 @@ def validate_account_has_users(db: Session, account_id: int,
     ).scalar()
 
     if user_count == 0:
-        logger.warning("Account %d has no users assigned for tenant %s",
-                       account_id, tenant_id)
+        logger.warning("trade_validation_failed", extra={
+            "reason": "account_has_no_users",
+            "account_id": account_id, "tenant_id": tenant_id,
+        })
         return False
 
-    logger.info("Account %d has %d users for tenant %s",
-                account_id, user_count, tenant_id)
+    logger.info("account_users_validated", extra={
+        "account_id": account_id,
+        "user_count": user_count,
+        "tenant_id": tenant_id,
+    })
     return True
 
 
@@ -116,13 +129,17 @@ def validate_security_exists(security: str) -> bool:
     Validate that a security/ticker exists in reference data.
     Cross-domain reference data validation — intentional smell.
     """
-    logger.debug("Validating security: %s", security)
+    logger.debug("security_validation_start", extra={"security": security})
     stock = find_stock_by_ticker(security)
     if stock is None:
-        logger.warning("Security %s not found in reference data", security)
+        logger.warning("trade_validation_failed", extra={
+            "reason": "security_not_found", "security": security,
+        })
         return False
 
-    logger.info("Security %s validated: %s", security, stock["companyName"])
+    logger.info("security_validated", extra={
+        "security": security, "company_name": stock["companyName"],
+    })
     return True
 
 
@@ -133,33 +150,43 @@ def validate_trade_request(db: Session, account_id: int, security: str,
     Comprehensive trade validation combining all checks.
     Returns (is_valid, error_message).
     """
-    logger.info("Validating trade request: account=%d security=%s side=%s "
-                "qty=%d tenant=%s", account_id, security, side, quantity,
-                tenant_id)
+    logger.info("trade_validation_start", extra={
+        "account_id": account_id, "security": security,
+        "side": side, "quantity": quantity, "tenant_id": tenant_id,
+    })
 
     # Validate trade side
     if not validate_trade_side(side):
         error = f"Invalid trade side: {side}. Must be 'Buy' or 'Sell'."
-        logger.error(error)
+        logger.error("trade_validation_failed", extra={
+            "reason": "invalid_side", "side": side, "tenant_id": tenant_id,
+        })
         return False, error
 
     # Validate trade quantity
     if not validate_trade_quantity(quantity):
         error = (f"Invalid trade quantity: {quantity}. "
                  f"Must be between {MIN_TRADE_QUANTITY} and {MAX_TRADE_QUANTITY}.")
-        logger.error(error)
+        logger.error("trade_validation_failed", extra={
+            "reason": "invalid_quantity", "quantity": quantity, "tenant_id": tenant_id,
+        })
         return False, error
 
     # Validate account exists (cross-domain query)
     if not validate_account_exists(db, account_id, tenant_id):
         error = f"Account {account_id} not found for tenant {tenant_id}."
-        logger.error(error)
+        logger.error("trade_validation_failed", extra={
+            "reason": "account_not_found",
+            "account_id": account_id, "tenant_id": tenant_id,
+        })
         return False, error
 
     # Validate security exists (cross-domain query)
     if not validate_security_exists(security):
         error = f"Security {security} not found in reference data."
-        logger.error(error)
+        logger.error("trade_validation_failed", extra={
+            "reason": "security_not_found", "security": security, "tenant_id": tenant_id,
+        })
         return False, error
 
     # Tenant-specific validation rules
@@ -167,7 +194,10 @@ def validate_trade_request(db: Session, account_id: int, security: str,
     if side not in tenant_sides:
         error = (f"Trade side '{side}' not allowed for tenant {tenant_id}. "
                  f"Allowed: {tenant_sides}")
-        logger.error(error)
+        logger.error("trade_validation_failed", extra={
+            "reason": "side_not_allowed",
+            "side": side, "allowed_sides": tenant_sides, "tenant_id": tenant_id,
+        })
         return False, error
 
     # Check for sell validation — cannot sell more than current position
@@ -176,14 +206,17 @@ def validate_trade_request(db: Session, account_id: int, security: str,
             db, account_id, security, tenant_id
         )
         if current_position < quantity:
-            logger.warning(
-                "Sell quantity %d exceeds current position %d for "
-                "account %d security %s tenant %s. Allowing trade but logging warning.",
-                quantity, current_position, account_id, security, tenant_id
-            )
+            logger.warning("sell_exceeds_position", extra={
+                "account_id": account_id, "security": security,
+                "sell_quantity": quantity, "current_position": current_position,
+                "tenant_id": tenant_id,
+            })
             # Note: we allow the trade but log the warning (realistic legacy behavior)
 
-    logger.info("Trade request validated successfully")
+    logger.info("trade_validation_passed", extra={
+        "account_id": account_id, "security": security,
+        "side": side, "quantity": quantity, "tenant_id": tenant_id,
+    })
     return True, ""
 
 
@@ -211,8 +244,10 @@ def update_position(db: Session, account_id: int, security: str,
     Update or create a position for an account/security pair.
     If position doesn't exist, creates a new one.
     """
-    logger.info("Updating position: account=%d security=%s delta=%d tenant=%s",
-                account_id, security, quantity_delta, tenant_id)
+    logger.info("position_update_start", extra={
+        "account_id": account_id, "security": security,
+        "quantity_delta": quantity_delta, "tenant_id": tenant_id,
+    })
 
     position = db.query(Position).filter(
         Position.account_id == account_id,
@@ -221,8 +256,9 @@ def update_position(db: Session, account_id: int, security: str,
     ).first()
 
     if position is None:
-        logger.info("Creating new position for account %d security %s tenant %s",
-                     account_id, security, tenant_id)
+        logger.info("position_created", extra={
+            "account_id": account_id, "security": security, "tenant_id": tenant_id,
+        })
         position = Position(
             account_id=account_id,
             security=security,
@@ -243,8 +279,11 @@ def update_position(db: Session, account_id: int, security: str,
         f"old_qty={old_quantity} new_qty={position.quantity} delta={quantity_delta}"
     )
 
-    logger.info("Position updated: account=%d security=%s old_qty=%d new_qty=%d",
-                account_id, security, old_quantity, position.quantity)
+    logger.info("position_updated", extra={
+        "account_id": account_id, "security": security,
+        "previous_quantity": old_quantity, "quantity": position.quantity,
+        "delta": quantity_delta, "tenant_id": tenant_id,
+    })
 
     return position
 
@@ -292,10 +331,10 @@ def transition_trade_state(db: Session, trade: Trade,
     old_state = trade.state
 
     if not can_transition(old_state, new_state):
-        logger.error(
-            "Invalid state transition: %s -> %s for trade %d",
-            old_state, new_state, trade.id
-        )
+        logger.error("invalid_state_transition", extra={
+            "trade_id": trade.id, "current_state": old_state,
+            "requested_state": new_state, "tenant_id": trade.tenant_id,
+        })
         return False
 
     trade.state = new_state
@@ -308,7 +347,10 @@ def transition_trade_state(db: Session, trade: Trade,
         trade.tenant_id
     )
 
-    logger.info("Trade %d state: %s -> %s", trade.id, old_state, new_state)
+    logger.info("trade_state_changed", extra={
+        "trade_id": trade.id, "previous_state": old_state,
+        "new_state": new_state, "tenant_id": trade.tenant_id,
+    })
     return True
 
 
@@ -320,7 +362,7 @@ async def publish_trade_update(trade: Trade):
     """Publish a trade update via Socket.io."""
     sio = get_socketio_server()
     if sio is None:
-        logger.warning("Socket.io server not initialized, skipping trade publish")
+        logger.warning("socketio_not_initialized", extra={"event": "trade_update"})
         return
 
     room = f"/accounts/{trade.account_id}/trades"
@@ -328,17 +370,20 @@ async def publish_trade_update(trade: Trade):
 
     try:
         await sio.emit("publish", {"topic": room, "payload": trade_data}, room=room)
-        logger.info("Published trade update to room %s: trade_id=%d state=%s",
-                     room, trade.id, trade.state)
+        logger.info("trade_update_published", extra={
+            "room": room, "trade_id": trade.id, "state": trade.state,
+        })
     except Exception as e:
-        logger.error("Error publishing trade update: %s", str(e))
+        logger.error("trade_update_publish_failed", extra={
+            "trade_id": trade.id, "error": str(e),
+        })
 
 
 async def publish_position_update(position: Position):
     """Publish a position update via Socket.io."""
     sio = get_socketio_server()
     if sio is None:
-        logger.warning("Socket.io server not initialized, skipping position publish")
+        logger.warning("socketio_not_initialized", extra={"event": "position_update"})
         return
 
     room = f"/accounts/{position.account_id}/positions"
@@ -346,10 +391,13 @@ async def publish_position_update(position: Position):
 
     try:
         await sio.emit("publish", {"topic": room, "payload": position_data}, room=room)
-        logger.info("Published position update to room %s: security=%s qty=%d",
-                     room, position.security, position.quantity)
+        logger.info("position_update_published", extra={
+            "room": room, "security": position.security, "quantity": position.quantity,
+        })
     except Exception as e:
-        logger.error("Error publishing position update: %s", str(e))
+        logger.error("position_update_publish_failed", extra={
+            "security": position.security, "error": str(e),
+        })
 
 
 async def publish_trade_and_position(trade: Trade, position: Position):
@@ -378,18 +426,20 @@ async def process_trade(db: Session, account_id: int, security: str,
     This is the main entry point — called from the /trade/ endpoint.
     """
     start_time = time.time()
-    logger.info("=" * 60)
-    logger.info("PROCESSING TRADE ORDER")
-    logger.info("Account: %d | Security: %s | Side: %s | Qty: %d | Tenant: %s",
-                account_id, security, side, quantity, tenant_id)
-    logger.info("=" * 60)
+    logger.info("trade_processing_start", extra={
+        "account_id": account_id, "security": security,
+        "side": side, "quantity": quantity, "tenant_id": tenant_id,
+    })
 
     # Step 1: Validate
     is_valid, error_msg = validate_trade_request(
         db, account_id, security, side, quantity, tenant_id
     )
     if not is_valid:
-        logger.error("Trade validation failed: %s", error_msg)
+        logger.error("trade_processing_failed", extra={
+            "reason": "validation_failed", "error": error_msg,
+            "account_id": account_id, "tenant_id": tenant_id,
+        })
         return {
             "success": False,
             "error": error_msg,
@@ -414,11 +464,18 @@ async def process_trade(db: Session, account_id: int, security: str,
     log_trade_event(trade.id, account_id, "CREATED", tenant_id,
                     f"security={security} side={side} qty={quantity}")
 
-    logger.info("Trade created with ID: %d", trade.id)
+    logger.info("trade_created", extra={
+        "trade_id": trade.id, "account_id": account_id,
+        "security": security, "side": side, "quantity": quantity,
+        "tenant_id": tenant_id,
+    })
 
     # Step 3: Transition to Processing
     if not transition_trade_state(db, trade, "Processing"):
-        logger.error("Failed to transition trade %d to Processing", trade.id)
+        logger.error("trade_processing_failed", extra={
+            "reason": "state_transition_failed", "trade_id": trade.id,
+            "target_state": "Processing", "tenant_id": tenant_id,
+        })
         return {
             "success": False,
             "error": "Failed to process trade",
@@ -436,13 +493,18 @@ async def process_trade(db: Session, account_id: int, security: str,
     if auto_settle:
         # Transition to Settled
         if not transition_trade_state(db, trade, "Settled"):
-            logger.error("Failed to transition trade %d to Settled", trade.id)
+            logger.error("trade_processing_failed", extra={
+                "reason": "settle_transition_failed", "trade_id": trade.id,
+                "tenant_id": tenant_id,
+            })
         else:
-            logger.info("Trade %d auto-settled for tenant %s",
-                        trade.id, tenant_id)
+            logger.info("trade_auto_settled", extra={
+                "trade_id": trade.id, "tenant_id": tenant_id,
+            })
     else:
-        logger.info("Trade %d left in Processing state — "
-                     "auto-settle disabled for tenant %s", trade.id, tenant_id)
+        logger.info("trade_pending_settlement", extra={
+            "trade_id": trade.id, "tenant_id": tenant_id,
+        })
 
     # Commit all changes
     db.commit()
@@ -453,7 +515,9 @@ async def process_trade(db: Session, account_id: int, security: str,
     try:
         await publish_trade_and_position(trade, position)
     except Exception as e:
-        logger.error("Error publishing Socket.io events: %s", str(e))
+        logger.error("socketio_publish_failed", extra={
+            "trade_id": trade.id, "error": str(e), "tenant_id": tenant_id,
+        })
 
     # Step 7: Update runtime stats
     update_runtime_state("total_trades_processed",
@@ -465,8 +529,12 @@ async def process_trade(db: Session, account_id: int, security: str,
     log_trade_event(trade.id, account_id, "COMPLETED", tenant_id,
                     f"elapsed_ms={elapsed_ms:.2f} final_state={trade.state}")
 
-    logger.info("Trade processing complete: trade_id=%d state=%s elapsed=%.2fms",
-                trade.id, trade.state, elapsed_ms)
+    logger.info("trade_processed", extra={
+        "trade_id": trade.id, "account_id": account_id,
+        "security": security, "side": side, "quantity": quantity,
+        "state": trade.state, "elapsed_ms": round(elapsed_ms, 2),
+        "tenant_id": tenant_id,
+    })
 
     result = {
         "success": True,
@@ -685,8 +753,10 @@ def check_tenant_account_limit(db: Session, tenant_id: str) -> bool:
     max_allowed = get_max_accounts_for_tenant(tenant_id)
 
     if current_count >= max_allowed:
-        logger.warning("Tenant %s has reached account limit: %d/%d",
-                       tenant_id, current_count, max_allowed)
+        logger.warning("tenant_account_limit_reached", extra={
+            "tenant_id": tenant_id,
+            "current_count": current_count, "max_allowed": max_allowed,
+        })
         return False
 
     return True
@@ -708,13 +778,16 @@ def apply_tenant_specific_rules(db: Session, trade: Trade,
     Apply any tenant-specific rules to a trade after creation.
     Returns True if rules were applied successfully.
     """
-    logger.info("Applying tenant-specific rules for %s to trade %d",
-                tenant_id, trade.id)
+    logger.info("tenant_rules_applied", extra={
+        "tenant_id": tenant_id, "trade_id": trade.id,
+    })
 
     # Initech has special handling — trades over 10000 quantity need review
     if tenant_id == "initech" and trade.quantity > 10000:
-        logger.warning("Trade %d for tenant initech exceeds 10000 qty — "
-                       "flagging for review", trade.id)
+        logger.warning("trade_flagged_for_review", extra={
+            "trade_id": trade.id, "quantity": trade.quantity,
+            "tenant_id": tenant_id,
+        })
         log_trade_event(trade.id, trade.account_id,
                         "FLAGGED_FOR_REVIEW", tenant_id,
                         f"quantity={trade.quantity}")
@@ -729,8 +802,9 @@ def apply_tenant_specific_rules(db: Session, trade: Trade,
         ).scalar() or 0
 
         if daily_trades > 1000:
-            logger.warning("Tenant globex_inc has exceeded daily trade limit: %d",
-                           daily_trades)
+            logger.warning("daily_trade_limit_exceeded", extra={
+                "tenant_id": tenant_id, "daily_trades": daily_trades,
+            })
 
     return True
 
@@ -759,8 +833,9 @@ def settle_pending_trades(db: Session, tenant_id: str) -> int:
     if settled_count > 0:
         db.commit()
 
-    logger.info("Batch settled %d trades for tenant %s",
-                settled_count, tenant_id)
+    logger.info("batch_settle_completed", extra={
+        "settled_count": settled_count, "tenant_id": tenant_id,
+    })
     return settled_count
 
 
@@ -789,8 +864,9 @@ def cancel_stale_trades(db: Session, tenant_id: str,
     if cancelled_count > 0:
         db.commit()
 
-    logger.info("Cancelled %d stale trades for tenant %s",
-                cancelled_count, tenant_id)
+    logger.info("stale_trades_cancelled", extra={
+        "cancelled_count": cancelled_count, "tenant_id": tenant_id,
+    })
     return cancelled_count
 
 
@@ -804,8 +880,9 @@ def recalculate_positions(db: Session, account_id: int,
     Recalculate all positions for an account from settled trades.
     Used for reconciliation / maintenance.
     """
-    logger.info("Recalculating positions for account %d tenant %s",
-                account_id, tenant_id)
+    logger.info("position_recalculation_start", extra={
+        "account_id": account_id, "tenant_id": tenant_id,
+    })
 
     # Get all settled trades grouped by security
     trades = db.query(Trade).filter(
@@ -852,8 +929,10 @@ def recalculate_positions(db: Session, account_id: int,
     log_audit_event("POSITION_RECALC", tenant_id,
                     f"account_id={account_id} securities={len(position_map)}")
 
-    logger.info("Recalculated %d positions for account %d",
-                len(updated_positions), account_id)
+    logger.info("position_recalculation_completed", extra={
+        "account_id": account_id, "position_count": len(updated_positions),
+        "tenant_id": tenant_id,
+    })
     return updated_positions
 
 
@@ -984,8 +1063,9 @@ def validate_user_can_trade(db: Session, account_id: int, username: str,
     ).first()
 
     if user is None:
-        logger.warning("User %s not authorized for account %d tenant %s",
-                       username, account_id, tenant_id)
+        logger.warning("user_not_authorized", extra={
+            "username": username, "account_id": account_id, "tenant_id": tenant_id,
+        })
         return False
 
     return True

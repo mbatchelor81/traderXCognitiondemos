@@ -8,7 +8,6 @@ SQLAlchemy queries inline instead of going through the service layer —
 intentionally inconsistent (architectural smell).
 """
 
-import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -21,8 +20,9 @@ from app.database import get_db
 from app.models.trade import Trade
 from app.services import trade_processor
 from app.utils.helpers import get_tenant_from_request
+from app.utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter()
 
@@ -52,8 +52,11 @@ async def submit_trade(body: TradeOrderRequest, request: Request,
     """
     tenant_id = get_tenant_from_request(request)
 
-    logger.info("Trade order received: account=%d security=%s side=%s qty=%d",
-                body.accountId, body.security, body.side, body.quantity)
+    logger.info("trade_order_received", extra={
+        "account_id": body.accountId, "security": body.security,
+        "side": body.side, "quantity": body.quantity,
+        "tenant_id": tenant_id,
+    })
 
     result = await trade_processor.process_trade(
         db=db,

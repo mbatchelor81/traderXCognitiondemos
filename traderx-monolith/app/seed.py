@@ -4,7 +4,6 @@ Populates the database with sample data distributed across 3 tenants.
 Runs automatically on first startup if the database is empty.
 """
 
-import logging
 from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
@@ -15,8 +14,9 @@ from app.models.account import Account, AccountUser
 from app.models.trade import Trade
 from app.models.position import Position
 from app.utils.helpers import now_utc
+from app.utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def is_database_empty(db: Session) -> bool:

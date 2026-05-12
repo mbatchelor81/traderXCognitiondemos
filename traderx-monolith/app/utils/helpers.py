@@ -5,14 +5,14 @@ This module provides common helpers used across all layers of the application.
 
 import csv
 import json
-import logging
 import os
 from datetime import datetime
 from typing import List, Optional
 
 from app.config import *  # noqa: F401,F403 — intentional global config import
+from app.utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # =============================================================================
 # Reference Data Helpers
@@ -40,11 +40,18 @@ def load_stocks_from_csv(file_path: Optional[str] = None) -> List[dict]:
                     "companyName": row.get("Security", ""),
                 })
         _stocks_cache = stocks
-        logger.info("Loaded %d stocks from %s", len(stocks), file_path)
+        logger.info("reference_data_loaded", extra={
+            "data_type": "stocks", "count": len(stocks), "file_path": file_path,
+        })
     except FileNotFoundError:
-        logger.error("Stock data file not found: %s", file_path)
+        logger.error("reference_data_load_failed", extra={
+            "data_type": "stocks", "reason": "file_not_found",
+            "file_path": file_path,
+        })
     except Exception as e:
-        logger.error("Error loading stock data: %s", str(e))
+        logger.error("reference_data_load_failed", extra={
+            "data_type": "stocks", "error": str(e), "file_path": file_path,
+        })
 
     return stocks
 
@@ -85,11 +92,18 @@ def load_people_from_json(file_path: Optional[str] = None) -> List[dict]:
         with open(file_path, "r", encoding="utf-8") as f:
             people = json.load(f)
         _people_cache = people
-        logger.info("Loaded %d people from %s", len(people), file_path)
+        logger.info("reference_data_loaded", extra={
+            "data_type": "people", "count": len(people), "file_path": file_path,
+        })
     except FileNotFoundError:
-        logger.error("People data file not found: %s", file_path)
+        logger.error("reference_data_load_failed", extra={
+            "data_type": "people", "reason": "file_not_found",
+            "file_path": file_path,
+        })
     except Exception as e:
-        logger.error("Error loading people data: %s", str(e))
+        logger.error("reference_data_load_failed", extra={
+            "data_type": "people", "error": str(e), "file_path": file_path,
+        })
 
     return people
 
@@ -153,25 +167,34 @@ def is_valid_tenant(tenant_id: str) -> bool:
 # Logging Helpers
 # =============================================================================
 
-def log_audit_event(event_type: str, tenant_id: str, details: str):
+def log_audit_event(event_type: str, tenant_id: str, details: str, **extra):
     """Log an audit event. Used by trade_processor and other services."""
     if not AUDIT_ENABLED:
         return
-    timestamp = now_utc().isoformat()
-    audit_msg = f"[AUDIT] [{timestamp}] [{tenant_id}] [{event_type}] {details}"
-    logger.info(audit_msg)
+    logger.info("audit_event", extra={
+        "event_type": event_type,
+        "tenant_id": tenant_id,
+        "details": details,
+        **extra,
+    })
 
 
 def log_trade_event(trade_id, account_id, action, tenant_id, extra=""):
     """Log a trade-specific event for audit trail."""
-    details = f"trade_id={trade_id} account_id={account_id} action={action} {extra}"
-    log_audit_event("TRADE", tenant_id, details)
+    log_audit_event(
+        "TRADE", tenant_id,
+        f"trade_id={trade_id} account_id={account_id} action={action} {extra}",
+        trade_id=trade_id, account_id=account_id, action=action,
+    )
 
 
 def log_position_event(account_id, security, action, tenant_id, extra=""):
     """Log a position-specific event for audit trail."""
-    details = f"account_id={account_id} security={security} action={action} {extra}"
-    log_audit_event("POSITION", tenant_id, details)
+    log_audit_event(
+        "POSITION", tenant_id,
+        f"account_id={account_id} security={security} action={action} {extra}",
+        account_id=account_id, security=security, action=action,
+    )
 
 
 # =============================================================================
