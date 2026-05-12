@@ -12,8 +12,11 @@ from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
+from sqlalchemy import func
+
 from app.config import *  # noqa: F401,F403 — intentional global config import
 from app.models.account import Account, AccountUser
+from app.models.position import Position
 from app.utils.helpers import log_audit_event
 
 logger = logging.getLogger(__name__)
@@ -168,9 +171,6 @@ def get_account_summary(
         return None
 
     trade_count = get_trade_count_for_account(db, account_id, tenant_id)
-
-    from app.models.position import Position
-    from sqlalchemy import func
 
     total_quantity = (
         db.query(func.coalesce(func.sum(func.abs(Position.quantity)), 0))

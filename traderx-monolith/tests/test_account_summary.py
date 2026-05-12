@@ -27,18 +27,20 @@ def test_summary_with_trades(client):
     acct = client.post("/account/", json={"displayName": "Trade Account"})
     account_id = acct.json()["id"]
 
-    client.post("/trade/", json={
+    r1 = client.post("/trade/", json={
         "accountId": account_id,
         "security": "AAPL",
         "side": "Buy",
         "quantity": 100,
     })
-    client.post("/trade/", json={
+    assert r1.status_code == 200 and r1.json()["success"]
+    r2 = client.post("/trade/", json={
         "accountId": account_id,
         "security": "MSFT",
         "side": "Buy",
         "quantity": 50,
     })
+    assert r2.status_code == 200 and r2.json()["success"]
 
     resp = client.get(f"/account/{account_id}/summary")
     assert resp.status_code == 200
@@ -52,18 +54,20 @@ def test_summary_buy_and_sell(client):
     acct = client.post("/account/", json={"displayName": "Mixed Account"})
     account_id = acct.json()["id"]
 
-    client.post("/trade/", json={
+    r1 = client.post("/trade/", json={
         "accountId": account_id,
         "security": "AAPL",
         "side": "Buy",
         "quantity": 200,
     })
-    client.post("/trade/", json={
+    assert r1.status_code == 200 and r1.json()["success"]
+    r2 = client.post("/trade/", json={
         "accountId": account_id,
         "security": "AAPL",
         "side": "Sell",
         "quantity": 50,
     })
+    assert r2.status_code == 200 and r2.json()["success"]
 
     resp = client.get(f"/account/{account_id}/summary")
     assert resp.status_code == 200
