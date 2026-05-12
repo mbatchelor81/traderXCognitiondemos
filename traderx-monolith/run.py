@@ -3,7 +3,6 @@ Entry point for the TraderX Monolith application.
 Usage: python run.py
 """
 
-import logging
 import sys
 import os
 
@@ -13,12 +12,10 @@ sys.path.insert(0, os.path.dirname(__file__))
 from app.config import APP_HOST, APP_PORT, DEBUG, LOG_LEVEL
 from app.database import create_tables
 from app.seed import seed_database
+from app.utils.logging_config import configure_logging, get_logger
 
-logging.basicConfig(
-    level=getattr(logging, LOG_LEVEL, logging.INFO),
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
-logger = logging.getLogger(__name__)
+configure_logging(level=LOG_LEVEL)
+logger = get_logger(__name__)
 
 
 def main():

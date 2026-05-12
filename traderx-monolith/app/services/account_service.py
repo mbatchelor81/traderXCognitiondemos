@@ -7,7 +7,6 @@ trade_processor imports from here, and this module imports from trade_processor
 (to get trade count for account validation). Resolved via lazy imports.
 """
 
-import logging
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
@@ -15,8 +14,9 @@ from sqlalchemy.orm import Session
 from app.config import *  # noqa: F401,F403 — intentional global config import
 from app.models.account import Account, AccountUser
 from app.utils.helpers import log_audit_event
+from app.utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 # =============================================================================
@@ -53,7 +53,10 @@ def create_account(db: Session, display_name: str, tenant_id: str,
     db.refresh(account)
     log_audit_event("ACCOUNT_CREATED", tenant_id,
                     f"account_id={account.id} display_name={display_name}")
-    logger.info("Created account %d for tenant %s", account.id, tenant_id)
+    logger.info("account_created", extra={
+        "account_id": account.id, "tenant_id": tenant_id,
+        "display_name": display_name,
+    })
     return account
 
 
@@ -69,7 +72,10 @@ def update_account(db: Session, account_id: int, display_name: str,
     db.refresh(account)
     log_audit_event("ACCOUNT_UPDATED", tenant_id,
                     f"account_id={account.id} display_name={display_name}")
-    logger.info("Updated account %d for tenant %s", account.id, tenant_id)
+    logger.info("account_updated", extra={
+        "account_id": account.id, "tenant_id": tenant_id,
+        "display_name": display_name,
+    })
     return account
 
 
@@ -121,8 +127,9 @@ def create_account_user(db: Session, account_id: int, username: str,
     db.refresh(account_user)
     log_audit_event("ACCOUNT_USER_CREATED", tenant_id,
                     f"account_id={account_id} username={username}")
-    logger.info("Created account user %s for account %d tenant %s",
-                username, account_id, tenant_id)
+    logger.info("account_user_created", extra={
+        "account_id": account_id, "username": username, "tenant_id": tenant_id,
+    })
     return account_user
 
 

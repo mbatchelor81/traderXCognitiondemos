@@ -3,18 +3,22 @@ FastAPI application entry point with Socket.io mount.
 This is the main application module that wires everything together.
 """
 
-import logging
 import os
 
 import sentry_sdk
 import socketio
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from app.config import *  # noqa: F401,F403 — intentional global config import
-from app.middleware import TenantMiddleware
+from app.database import get_db
+from app.middleware import CorrelationIdMiddleware, RequestTimingMiddleware, TenantMiddleware
 from app.routes import accounts, trades, positions, people, reference_data
 from app.services.trade_processor import set_socketio_server
+from app.utils.logging_config import configure_logging, get_logger
 
 # =============================================================================
 # Sentry SDK Initialization (must happen before app is created)
@@ -28,11 +32,8 @@ if SENTRY_DSN:
         enable_logs=True,
     )
 
-logging.basicConfig(
-    level=getattr(logging, LOG_LEVEL, logging.INFO),
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
-logger = logging.getLogger(__name__)
+configure_logging(level=LOG_LEVEL)
+logger = get_logger(__name__)
 
 # =============================================================================
 # Socket.io Server
@@ -99,7 +100,9 @@ def create_app() -> FastAPI:
         allow_headers=CORS_ALLOW_HEADERS,
     )
 
-    # Tenant middleware
+    # Observability middleware (order matters: outermost runs first)
+    app.add_middleware(RequestTimingMiddleware)
+    app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(TenantMiddleware)
 
     # Include routers
@@ -118,8 +121,28 @@ def create_app() -> FastAPI:
         }
 
     @app.get("/health")
-    def health():
-        return {"status": "UP"}
+    def health_check(db: Session = Depends(get_db)):
+        """Health check with dependency verification."""
+        checks = {}
+
+        try:
+            db.execute(text("SELECT 1"))
+            checks["database"] = "connected"
+        except Exception as e:
+            checks["database"] = f"error: {str(e)}"
+
+        all_healthy = all(
+            v in ("connected", "ok")
+            for v in checks.values()
+        )
+
+        return JSONResponse(
+            status_code=200 if all_healthy else 503,
+            content={
+                "status": "healthy" if all_healthy else "unhealthy",
+                "checks": checks,
+            },
+        )
 
     @app.get("/sentry-debug")
     async def trigger_error():

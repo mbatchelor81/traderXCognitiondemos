@@ -6,8 +6,6 @@ NOTE: Uses raw SQLAlchemy queries inline — bypasses the trade_processor
 service layer for position queries (intentional architectural smell).
 """
 
-import logging
-
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
@@ -15,8 +13,9 @@ from app.config import *  # noqa: F401,F403 — intentional global config import
 from app.database import get_db
 from app.models.position import Position
 from app.utils.helpers import get_tenant_from_request
+from app.utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter()
 
