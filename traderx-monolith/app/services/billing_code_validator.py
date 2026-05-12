@@ -115,7 +115,9 @@ def _validate_code_against_server(
                 return False, "Terminology server returned invalid JSON"
             for param in data.get("parameter", []):
                 if param.get("name") == "result":
-                    return param.get("valueBoolean", False), "Valid"
+                    is_valid = param.get("valueBoolean", False)
+                    msg = "Valid" if is_valid else "Code not found in terminology server"
+                    return is_valid, msg
             return False, "Unexpected response format from terminology server"
         return False, f"Terminology server returned status {response.status_code}"
     except httpx.TimeoutException:

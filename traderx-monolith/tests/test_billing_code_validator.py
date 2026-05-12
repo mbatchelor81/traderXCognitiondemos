@@ -85,6 +85,7 @@ def test_validate_icd10_code_invalid(mock_get):
     mock_get.return_value = _mock_fhir_response(False)
     is_valid, message = validate_coded_entry("INVALID", "ICD-10")
     assert is_valid is False
+    assert "not found" in message.lower()
 
 
 @patch("app.services.billing_code_validator.httpx.get")
@@ -101,6 +102,7 @@ def test_validate_cpt_code_invalid(mock_get):
     mock_get.return_value = _mock_fhir_response(False)
     is_valid, message = validate_coded_entry("00000", "CPT")
     assert is_valid is False
+    assert "not found" in message.lower()
 
 
 @patch("app.services.billing_code_validator.httpx.get")
@@ -117,6 +119,7 @@ def test_validate_snomed_code_invalid(mock_get):
     mock_get.return_value = _mock_fhir_response(False)
     is_valid, message = validate_coded_entry("0000000", "SNOMED-CT")
     assert is_valid is False
+    assert "not found" in message.lower()
 
 
 @patch("app.services.billing_code_validator.httpx.get")
