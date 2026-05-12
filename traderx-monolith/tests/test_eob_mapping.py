@@ -106,6 +106,7 @@ class TestMapTradeToEob:
             _make_account(id=99, display_name=None),
         )
         assert eob.patient.display == "Account 99"
+        assert eob.payee.party.display == "Account 99"
 
     def test_status_cancelled_for_cancelled_trade(self):
         eob = map_trade_to_eob(_make_trade(state="Cancelled"), _make_account())

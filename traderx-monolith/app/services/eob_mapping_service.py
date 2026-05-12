@@ -127,7 +127,7 @@ def map_trade_to_eob(trade: Trade, account: Account) -> ExplanationOfBenefit:
             ),
             party=FhirReference(
                 reference=f"Patient/{trade.account_id}",
-                display=account.display_name,
+                display=account.display_name or f"Account {trade.account_id}",
             ),
         ),
         outcome=_TRADE_STATE_TO_EOB_OUTCOME.get(trade.state, "queued"),
