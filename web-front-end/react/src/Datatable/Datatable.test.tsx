@@ -69,7 +69,6 @@ describe('Datatable', () => {
 
   test('New Trade button is disabled when no account is selected', () => {
     renderComponent();
-    const newTradeButton = screen.getByText('New Trade').closest('button');
-    expect(newTradeButton).toBeDisabled();
+    expect(screen.getByRole('button', { name: /New Trade/i })).toBeDisabled();
   });
 });

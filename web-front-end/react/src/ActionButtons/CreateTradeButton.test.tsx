@@ -31,12 +31,12 @@ describe('CreateTradeButton', () => {
 
   test('button is disabled when accountId is 0', () => {
     renderComponent(0);
-    expect(screen.getByText('New Trade').closest('button')).toBeDisabled();
+    expect(screen.getByRole('button', { name: /New Trade/i })).toBeDisabled();
   });
 
   test('button is enabled when accountId is provided', () => {
     renderComponent(123);
-    expect(screen.getByText('New Trade').closest('button')).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /New Trade/i })).not.toBeDisabled();
   });
 
   test('opens dialog and loads stocks on button click', async () => {
@@ -81,8 +81,8 @@ describe('CreateTradeButton', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Buy')).toBeInTheDocument();
-      expect(screen.getByText('Sell')).toBeInTheDocument();
     });
+    expect(screen.getByText('Sell')).toBeInTheDocument();
   });
 
   test('closes dialog when close button is clicked', async () => {
