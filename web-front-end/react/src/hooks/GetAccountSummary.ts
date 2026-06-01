@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Environment } from "../env";
 import { fetchWithTenant } from "../fetchWithTenant";
 import { useTenant } from "../TenantContext";
@@ -21,9 +21,33 @@ const EMPTY_SUMMARY: AccountSummary = {
 	netQuantity: 0,
 };
 
-export const GetAccountSummary = (accountId: number): AccountSummary => {
+export const GetAccountSummary = (accountId: number): { summary: AccountSummary; refetch: () => void } => {
 	const { tenant } = useTenant();
 	const [summary, setSummary] = useState<AccountSummary>(EMPTY_SUMMARY);
+
+	const fetchSummary = useCallback(async (signal?: AbortSignal) => {
+		if (accountId === 0) {
+			setSummary(EMPTY_SUMMARY);
+			return;
+		}
+		try {
+			const response = await fetchWithTenant(
+				`${Environment.account_service_url}/account/${accountId}/summary`,
+				signal ? { signal } : undefined
+			);
+			if (response.ok) {
+				const json = await response.json();
+				if (!signal?.aborted) {
+					setSummary(json);
+				}
+			}
+		} catch (error) {
+			if (error instanceof DOMException && error.name === "AbortError") {
+				return;
+			}
+			console.error("Failed to fetch account summary:", error);
+		}
+	}, [accountId, tenant]);
 
 	useEffect(() => {
 		if (accountId === 0) {
@@ -31,30 +55,15 @@ export const GetAccountSummary = (accountId: number): AccountSummary => {
 			return;
 		}
 		const abortController = new AbortController();
-		const fetchData = async () => {
-			try {
-				const response = await fetchWithTenant(
-					`${Environment.account_service_url}/account/${accountId}/summary`,
-					{ signal: abortController.signal }
-				);
-				if (response.ok) {
-					const json = await response.json();
-					if (!abortController.signal.aborted) {
-						setSummary(json);
-					}
-				}
-			} catch (error) {
-				if (error instanceof DOMException && error.name === "AbortError") {
-					return;
-				}
-				console.error("Failed to fetch account summary:", error);
-			}
-		};
-		fetchData();
+		fetchSummary(abortController.signal);
 		return () => {
 			abortController.abort();
 		};
-	}, [accountId, tenant]);
+	}, [accountId, tenant, fetchSummary]);
 
-	return summary;
+	const refetch = useCallback(() => {
+		fetchSummary();
+	}, [fetchSummary]);
+
+	return { summary, refetch };
 };
