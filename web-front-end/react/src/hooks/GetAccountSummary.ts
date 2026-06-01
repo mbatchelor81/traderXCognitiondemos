@@ -47,7 +47,7 @@ export const GetAccountSummary = (accountId: number): { summary: AccountSummary;
 			}
 			console.error("Failed to fetch account summary:", error);
 		}
-	}, [accountId, tenant]);
+	}, [accountId]);
 
 	useEffect(() => {
 		if (accountId === 0) {
