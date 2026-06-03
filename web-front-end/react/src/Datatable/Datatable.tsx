@@ -115,7 +115,7 @@ export const Datatable = () => {
 
 	const positionData = GetPositions(selectedId);
 	const tradeData = GetTrades(selectedId);
-	const summaryData: AccountSummaryData = GetAccountSummary(selectedId);
+	const summaryData: AccountSummaryData = GetAccountSummary(selectedId, tradeRowData.length);
 
 	// Reset selection when tenant changes
 	useEffect(() => {
