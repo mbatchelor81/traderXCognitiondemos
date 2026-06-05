@@ -18,10 +18,12 @@ import ShowChartIcon from '@mui/icons-material/ShowChart';
 import * as socketModule from '../socket';
 import { GetPositions, GetTrades } from '../hooks';
 import { CreateAccount, CreateAccountUser, CreateTradeButton } from '../ActionButtons';
-import { ColDef, ICellRendererParams } from 'ag-grid-community';
+import { AllCommunityModule, ColDef, ICellRendererParams, ModuleRegistry } from 'ag-grid-community';
 import { PositionData, TradeData } from './types';
 import { AccountsDropdown } from '../AccountsDropdown';
 import { useTenant } from '../TenantContext';
+
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 const PUBLISH = 'publish';
 const SUBSCRIBE = 'subscribe';
@@ -268,6 +270,7 @@ export const Datatable = () => {
 								</Box>
 								<Box className="ag-theme-alpine-dark" sx={{ flex: 1, minHeight: 400 }}>
 									<AgGridReact
+										theme="legacy"
 										rowData={tradeRowData}
 										columnDefs={tradeColumnDefs}
 										defaultColDef={defaultColDef}
@@ -294,6 +297,7 @@ export const Datatable = () => {
 								</Box>
 								<Box className="ag-theme-alpine-dark" sx={{ flex: 1, minHeight: 400 }}>
 									<AgGridReact
+										theme="legacy"
 										rowData={positionRowData}
 										columnDefs={positionColumnDefs}
 										defaultColDef={defaultColDef}
