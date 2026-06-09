@@ -2,7 +2,7 @@
 # deploy.sh - Manual deployment script for TraderX
 # Usage: ./deploy.sh [environment]
 
-ENVIRONMENT=${1:-production}
+ENVIRONMENT=${1:-staging}
 echo "Deploying TraderX to $ENVIRONMENT..."
 
 # Install dependencies
@@ -24,3 +24,4 @@ npm run build
 npx serve -s build -l 3000 &
 
 echo "TraderX deployed. Backend: http://localhost:8000, Frontend: http://localhost:3000"
+# Version: 2026-06-09-repro-test
