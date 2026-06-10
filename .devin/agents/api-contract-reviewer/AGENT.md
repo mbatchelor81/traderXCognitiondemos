@@ -18,7 +18,7 @@ Source under audit: `traderx-monolith/app/routes/*.py`
 ## What to Review
 
 ### 1. Naming Conventions
-- Route paths should be lowercase, plural nouns: `/account/`, `/trade/`, `/position/`
+- Route paths should be lowercase nouns — the codebase mixes singular (`/account/`, `/trade/`) and plural (`/positions/`, `/stocks/`); flag inconsistencies rather than enforcing one convention
 - Path parameters should use `{id}` style
 - Query parameters should use camelCase
 - Check for inconsistencies across route modules
