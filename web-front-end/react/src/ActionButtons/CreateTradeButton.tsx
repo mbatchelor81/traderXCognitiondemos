@@ -76,10 +76,22 @@ export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
 				setSnackbar({ open: true, message: 'Trade created successfully', severity: 'success' });
 				setOpen(false);
 			} else {
-				setSnackbar({ open: true, message: 'Failed to create trade', severity: 'error' });
+				let errorMsg = `Trade failed with status ${response.status}`;
+				try {
+					const errorData = await response.json();
+					if (errorData.error) {
+						errorMsg = `${errorData.error}`;
+						if (errorData.location) {
+							errorMsg += ` — at ${errorData.location}`;
+						}
+					}
+				} catch {
+					// response wasn't JSON, use the default message
+				}
+				setSnackbar({ open: true, message: errorMsg, severity: 'error' });
 			}
 		} catch (error) {
-			setSnackbar({ open: true, message: 'Error creating trade', severity: 'error' });
+			setSnackbar({ open: true, message: 'Error creating trade: network error', severity: 'error' });
 		} finally {
 			setSubmitting(false);
 		}
@@ -246,21 +258,22 @@ export const CreateTradeButton = ({ accountId }: ActionButtonsProps) => {
 				</DialogActions>
 			</Dialog>
 
-			<Snackbar
-				open={snackbar.open}
-				autoHideDuration={4000}
-				onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-				anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-			>
-				<Alert
+				<Snackbar
+					open={snackbar.open}
+					autoHideDuration={snackbar.severity === 'error' ? 10000 : 4000}
 					onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-					severity={snackbar.severity}
-					variant="filled"
-					sx={{ width: '100%' }}
+					anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+					sx={{ maxWidth: '600px' }}
 				>
-					{snackbar.message}
-				</Alert>
-			</Snackbar>
+					<Alert
+						onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+						severity={snackbar.severity}
+						variant="filled"
+						sx={{ width: '100%', fontSize: '0.9rem' }}
+					>
+						{snackbar.message}
+					</Alert>
+				</Snackbar>
 		</>
 	);
 };
