@@ -72,9 +72,9 @@ export const CreateAccount = () => {
 				startIcon={<AccountBalanceIcon />}
 				size="small"
 				sx={{
-					borderColor: 'rgba(255,255,255,0.15)',
-					color: '#e5e7eb',
-					'&:hover': { borderColor: 'rgba(255,255,255,0.3)', bgcolor: 'rgba(255,255,255,0.04)' },
+					borderColor: 'rgba(0,0,0,0.15)',
+					color: '#1f2937',
+					'&:hover': { borderColor: 'rgba(0,0,0,0.3)', bgcolor: 'rgba(0,0,0,0.04)' },
 				}}
 			>
 				New Account
@@ -87,8 +87,8 @@ export const CreateAccount = () => {
 				fullWidth
 				PaperProps={{
 					sx: {
-						bgcolor: '#111827',
-						border: '1px solid rgba(255,255,255,0.1)',
+						bgcolor: '#ffffff',
+						border: '1px solid rgba(0,0,0,0.12)',
 						borderRadius: 2,
 					},
 				}}
@@ -97,7 +97,7 @@ export const CreateAccount = () => {
 					<Typography variant="h6" sx={{ fontWeight: 600 }}>
 						Create Account
 					</Typography>
-					<IconButton onClick={handleClose} size="small" sx={{ color: '#6b7280' }}>
+					<IconButton onClick={handleClose} size="small" sx={{ color: '#9ca3af' }}>
 						<CloseIcon />
 					</IconButton>
 				</DialogTitle>
@@ -119,7 +119,7 @@ export const CreateAccount = () => {
 				</DialogContent>
 
 				<DialogActions sx={{ px: 3, pb: 2.5, pt: 1 }}>
-					<Button onClick={handleClose} sx={{ color: '#9ca3af' }}>
+					<Button onClick={handleClose} sx={{ color: '#6b7280' }}>
 						Cancel
 					</Button>
 					<Button

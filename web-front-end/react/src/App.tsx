@@ -32,17 +32,17 @@ const TenantSelector = () => {
         value={tenant}
         onChange={handleTenantChange}
         sx={{
-          color: '#e5e7eb',
+          color: '#1f2937',
           '.MuiOutlinedInput-notchedOutline': {
-            borderColor: 'rgba(255,255,255,0.15)',
+            borderColor: 'rgba(0,0,0,0.15)',
           },
           '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'rgba(255,255,255,0.3)',
+            borderColor: 'rgba(0,0,0,0.3)',
           },
           '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
             borderColor: '#3b82f6',
           },
-          '.MuiSvgIcon-root': { color: '#9ca3af' },
+          '.MuiSvgIcon-root': { color: '#6b7280' },
           fontSize: '0.875rem',
         }}
       >
@@ -93,8 +93,8 @@ const ConnectionStatus = () => {
       size="small"
       variant="outlined"
       sx={{
-        borderColor: 'rgba(255,255,255,0.15)',
-        color: '#9ca3af',
+        borderColor: 'rgba(0,0,0,0.15)',
+        color: '#6b7280',
         fontSize: '0.75rem',
         height: 28,
         '& .MuiChip-icon': { marginLeft: '8px' },
@@ -111,8 +111,8 @@ function App() {
           position="static"
           elevation={0}
           sx={{
-            bgcolor: '#0d1321',
-            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            bgcolor: '#ffffff',
+            borderBottom: '1px solid rgba(0,0,0,0.08)',
           }}
         >
           <Toolbar sx={{ justifyContent: 'space-between', minHeight: '56px !important' }}>

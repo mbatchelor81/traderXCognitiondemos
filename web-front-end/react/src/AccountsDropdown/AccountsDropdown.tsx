@@ -16,7 +16,7 @@ export const AccountsDropdown = ({ handleChange, currentAccount }: AccountsDropd
       <FormControl size="small" sx={{ minWidth: 240 }}>
         <InputLabel
           sx={{
-            color: '#9ca3af',
+            color: '#6b7280',
             '&.Mui-focused': { color: '#3b82f6' },
           }}
         >
@@ -27,27 +27,27 @@ export const AccountsDropdown = ({ handleChange, currentAccount }: AccountsDropd
           label="Select Account"
           onChange={handleChange}
           sx={{
-            color: '#e5e7eb',
+            color: '#1f2937',
             '.MuiOutlinedInput-notchedOutline': {
-              borderColor: 'rgba(255,255,255,0.15)',
+              borderColor: 'rgba(0,0,0,0.15)',
             },
             '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'rgba(255,255,255,0.3)',
+              borderColor: 'rgba(0,0,0,0.3)',
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
               borderColor: '#3b82f6',
             },
-            '.MuiSvgIcon-root': { color: '#9ca3af' },
+            '.MuiSvgIcon-root': { color: '#6b7280' },
           }}
         >
           <MenuItem value="">
-            <em style={{ color: '#6b7280' }}>None</em>
+            <em style={{ color: '#9ca3af' }}>None</em>
           </MenuItem>
           {accounts.map((account: AccountData) => (
             <MenuItem key={account.id} value={String(account.id)}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <span>{account.displayName}</span>
-                <span style={{ color: '#6b7280', fontSize: '0.8rem' }}>#{account.id}</span>
+                <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>#{account.id}</span>
               </Box>
             </MenuItem>
           ))}
@@ -57,8 +57,8 @@ export const AccountsDropdown = ({ handleChange, currentAccount }: AccountsDropd
         label={`${accounts.length} accounts`}
         size="small"
         sx={{
-          bgcolor: 'rgba(59, 130, 246, 0.1)',
-          color: '#3b82f6',
+          bgcolor: 'rgba(59, 130, 246, 0.08)',
+          color: '#2563eb',
           fontSize: '0.7rem',
           height: 24,
           border: '1px solid rgba(59, 130, 246, 0.2)',

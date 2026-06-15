@@ -103,9 +103,9 @@ export const CreateAccountUser = ({ accountId }: ActionButtonsProps) => {
 				startIcon={<PersonAddIcon />}
 				size="small"
 				sx={{
-					borderColor: 'rgba(255,255,255,0.15)',
-					color: '#e5e7eb',
-					'&:hover': { borderColor: 'rgba(255,255,255,0.3)', bgcolor: 'rgba(255,255,255,0.04)' },
+					borderColor: 'rgba(0,0,0,0.15)',
+					color: '#1f2937',
+					'&:hover': { borderColor: 'rgba(0,0,0,0.3)', bgcolor: 'rgba(0,0,0,0.04)' },
 				}}
 			>
 				Add User
@@ -118,8 +118,8 @@ export const CreateAccountUser = ({ accountId }: ActionButtonsProps) => {
 				fullWidth
 				PaperProps={{
 					sx: {
-						bgcolor: '#111827',
-						border: '1px solid rgba(255,255,255,0.1)',
+						bgcolor: '#ffffff',
+						border: '1px solid rgba(0,0,0,0.12)',
 						borderRadius: 2,
 					},
 				}}
@@ -128,7 +128,7 @@ export const CreateAccountUser = ({ accountId }: ActionButtonsProps) => {
 					<Typography variant="h6" sx={{ fontWeight: 600 }}>
 						Add Account User
 					</Typography>
-					<IconButton onClick={handleClose} size="small" sx={{ color: '#6b7280' }}>
+					<IconButton onClick={handleClose} size="small" sx={{ color: '#9ca3af' }}>
 						<CloseIcon />
 					</IconButton>
 				</DialogTitle>
@@ -179,7 +179,7 @@ export const CreateAccountUser = ({ accountId }: ActionButtonsProps) => {
 									<Typography variant="body2" sx={{ fontWeight: 600 }}>
 										{option.fullName}
 									</Typography>
-									<Typography variant="caption" sx={{ color: '#6b7280' }}>
+									<Typography variant="caption" sx={{ color: '#9ca3af' }}>
 										{option.logonId}
 									</Typography>
 								</Box>
@@ -187,14 +187,14 @@ export const CreateAccountUser = ({ accountId }: ActionButtonsProps) => {
 						)}
 					/>
 					{username && (
-						<Typography variant="caption" sx={{ color: '#10b981', mt: 1, display: 'block' }}>
+						<Typography variant="caption" sx={{ color: '#059669', mt: 1, display: 'block' }}>
 							Selected: {username}
 						</Typography>
 					)}
 				</DialogContent>
 
 				<DialogActions sx={{ px: 3, pb: 2.5, pt: 1 }}>
-					<Button onClick={handleClose} sx={{ color: '#9ca3af' }}>
+					<Button onClick={handleClose} sx={{ color: '#6b7280' }}>
 						Cancel
 					</Button>
 					<Button

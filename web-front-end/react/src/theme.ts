@@ -2,13 +2,13 @@ import { createTheme } from '@mui/material/styles';
 
 const theme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: 'light',
     primary: { main: '#3b82f6' },
     secondary: { main: '#8b5cf6' },
-    background: { default: '#0a0e17', paper: '#111827' },
+    background: { default: '#f8fafc', paper: '#ffffff' },
     success: { main: '#10b981' },
     error: { main: '#ef4444' },
-    text: { primary: '#e5e7eb', secondary: '#9ca3af' },
+    text: { primary: '#1f2937', secondary: '#6b7280' },
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
@@ -19,7 +19,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           backgroundImage: 'none',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgba(0,0,0,0.08)',
         },
       },
     },
@@ -35,7 +35,7 @@ const theme = createTheme({
       styleOverrides: {
         paper: {
           backgroundImage: 'none',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '1px solid rgba(0,0,0,0.12)',
         },
       },
     },
