@@ -12,8 +12,11 @@ from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
+from sqlalchemy import func
+
 from app.config import *  # noqa: F401,F403 — intentional global config import
 from app.models.account import Account, AccountUser
+from app.models.position import Position
 from app.utils.helpers import log_audit_event
 
 logger = logging.getLogger(__name__)
@@ -154,3 +157,33 @@ def can_delete_account(db: Session, account_id: int, tenant_id: str) -> bool:
     """Check if an account can be deleted (no trades associated)."""
     trade_count = get_trade_count_for_account(db, account_id, tenant_id)
     return trade_count == 0
+
+
+def get_account_summary(
+    db: Session, account_id: int, tenant_id: str
+) -> Optional[dict]:
+    """
+    Build an account summary with trade count and total position quantity.
+    Returns None if the account does not exist.
+    """
+    account = get_account_by_id(db, account_id, tenant_id)
+    if account is None:
+        return None
+
+    trade_count = get_trade_count_for_account(db, account_id, tenant_id)
+
+    total_quantity = (
+        db.query(func.coalesce(func.sum(func.abs(Position.quantity)), 0))
+        .filter(
+            Position.account_id == account_id,
+            Position.tenant_id == tenant_id,
+        )
+        .scalar()
+    )
+
+    return {
+        "accountId": account.id,
+        "displayName": account.display_name,
+        "tradeCount": trade_count,
+        "totalPositionQuantity": total_quantity,
+    }
