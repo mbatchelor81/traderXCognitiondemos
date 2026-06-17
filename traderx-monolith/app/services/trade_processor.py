@@ -33,9 +33,8 @@ from app.database import SessionLocal
 from app.models.account import Account, AccountUser
 from app.models.trade import Trade
 from app.models.position import Position
+from app.services import reference_data_service
 from app.utils.helpers import (
-    find_stock_by_ticker,
-    load_stocks_from_csv,
     log_audit_event,
     log_trade_event,
     log_position_event,
@@ -117,12 +116,12 @@ def validate_security_exists(security: str) -> bool:
     Cross-domain reference data validation — intentional smell.
     """
     logger.debug("Validating security: %s", security)
-    stock = find_stock_by_ticker(security)
+    stock = reference_data_service.find_stock_by_ticker(security)
     if stock is None:
         logger.warning("Security %s not found in reference data", security)
         return False
 
-    logger.info("Security %s validated: %s", security, stock["companyName"])
+    logger.info("Security %s validated: %s", security, stock.company_name)
     return True
 
 
