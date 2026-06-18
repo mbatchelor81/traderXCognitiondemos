@@ -83,8 +83,8 @@ async def submit_trade(body: TradeOrderRequest, request: Request,
 # =============================================================================
 
 @router.post("/trade/validate")
-async def validate_trade(body: TradeValidateRequest, request: Request,
-                         db: Session = Depends(get_db)):
+def validate_trade(body: TradeValidateRequest, request: Request,
+                   db: Session = Depends(get_db)):
     """
     Dry-run validation for a proposed trade.
     Returns {"valid": true} or {"valid": false, "error": "..."}.
