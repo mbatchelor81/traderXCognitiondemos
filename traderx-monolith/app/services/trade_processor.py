@@ -187,6 +187,34 @@ def validate_trade_request(db: Session, account_id: int, security: str,
     return True, ""
 
 
+def validate_trade_for_submission(db: Session, account_id: int, security: str,
+                                  side: str, quantity: int,
+                                  tenant_id: str,
+                                  price: Optional[float] = None) -> Dict:
+    """
+    Dry-run validation for a proposed trade — no records are created.
+    Reuses validate_trade_request and adds optional price sanity check.
+    Returns a dict with ``valid`` bool and, on failure, an ``error`` message.
+    """
+    logger.info("Validating trade (dry-run): account=%d security=%s side=%s "
+                "qty=%d tenant=%s price=%s",
+                account_id, security, side, quantity, tenant_id, price)
+
+    is_valid, error_msg = validate_trade_request(
+        db, account_id, security, side, quantity, tenant_id
+    )
+    if not is_valid:
+        return {"valid": False, "error": error_msg}
+
+    if price is not None and price <= 0:
+        error = f"Invalid price: {price}. Must be greater than zero."
+        logger.error(error)
+        return {"valid": False, "error": error}
+
+    logger.info("Trade dry-run validation passed")
+    return {"valid": True}
+
+
 # =============================================================================
 # Position Management
 # =============================================================================
