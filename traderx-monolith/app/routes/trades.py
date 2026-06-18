@@ -12,7 +12,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
@@ -36,6 +36,14 @@ class TradeOrderRequest(BaseModel):
     security: str
     side: str
     quantity: int
+
+
+class TradeValidateRequest(BaseModel):
+    accountId: int
+    security: str
+    side: str
+    quantity: int
+    price: Optional[float] = Field(None, gt=0)
 
 
 # =============================================================================
@@ -65,6 +73,36 @@ async def submit_trade(body: TradeOrderRequest, request: Request,
     )
 
     if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    return result
+
+
+# =============================================================================
+# Trade Validation Endpoint
+# =============================================================================
+
+@router.post("/trade/validate")
+def validate_trade(body: TradeValidateRequest, request: Request,
+                   db: Session = Depends(get_db)):
+    """
+    Dry-run validation for a proposed trade.
+    Returns {"valid": true} or {"valid": false, "error": "..."}.
+    No records are created.
+    """
+    tenant_id = get_tenant_from_request(request)
+
+    result = trade_processor.validate_trade_for_submission(
+        db=db,
+        account_id=body.accountId,
+        security=body.security,
+        side=body.side,
+        quantity=body.quantity,
+        tenant_id=tenant_id,
+        price=body.price,
+    )
+
+    if not result["valid"]:
         raise HTTPException(status_code=400, detail=result["error"])
 
     return result
