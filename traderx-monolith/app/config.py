@@ -69,6 +69,8 @@ CORS_ALLOW_HEADERS = ["*"]
 TRADE_PROCESSING_DELAY_MS = int(os.getenv("TRADE_PROCESSING_DELAY_MS", "0"))
 MAX_TRADE_QUANTITY = int(os.getenv("MAX_TRADE_QUANTITY", "1000000"))
 MIN_TRADE_QUANTITY = int(os.getenv("MIN_TRADE_QUANTITY", "1"))
+MIN_TRADE_PRICE = float(os.getenv("MIN_TRADE_PRICE", "0.01"))
+MAX_TRADE_PRICE = float(os.getenv("MAX_TRADE_PRICE", "1000000.00"))
 
 # =============================================================================
 # Tenant-specific Business Rules (intentional smell — config as business logic)

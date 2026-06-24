@@ -130,6 +130,11 @@ def validate_trade_quantity(quantity: int) -> bool:
     return MIN_TRADE_QUANTITY <= quantity <= MAX_TRADE_QUANTITY
 
 
+def validate_trade_price(price: float) -> bool:
+    """Validate that trade price is within allowed range."""
+    return MIN_TRADE_PRICE <= price <= MAX_TRADE_PRICE
+
+
 def validate_trade_state(state: str) -> bool:
     """Validate that a trade state is one of the allowed values."""
     return state in ("New", "Processing", "Settled", "Cancelled")
