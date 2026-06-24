@@ -99,6 +99,25 @@ def get_account(account_id: int, request: Request,
     return result
 
 
+@router.get("/account/{account_id}/summary")
+def get_account_summary(account_id: int, request: Request,
+                        db: Session = Depends(get_db)):
+    """
+    Get aggregated trade statistics for an account (total trades, settled vs.
+    pending, buy/sell quantities, net quantity).
+    Leverages the existing portfolio summary aggregation in the service layer.
+    """
+    tenant_id = get_tenant_from_request(request)
+
+    if account_service.get_account_by_id(db, account_id, tenant_id) is None:
+        raise HTTPException(status_code=404,
+                            detail=f"Account {account_id} not found")
+
+    log_audit_event("ACCOUNT_SUMMARY_VIEWED", tenant_id,
+                    f"account_id={account_id}")
+    return account_service.get_account_summary(db, account_id, tenant_id)
+
+
 # =============================================================================
 # AccountUser Endpoints
 # =============================================================================
