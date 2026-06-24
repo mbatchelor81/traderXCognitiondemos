@@ -154,3 +154,14 @@ def can_delete_account(db: Session, account_id: int, tenant_id: str) -> bool:
     """Check if an account can be deleted (no trades associated)."""
     trade_count = get_trade_count_for_account(db, account_id, tenant_id)
     return trade_count == 0
+
+
+def get_account_summary(db: Session, account_id: int, tenant_id: str) -> dict:
+    """
+    Get an aggregated portfolio/trade summary for an account.
+    Delegates to trade_processor.get_account_portfolio_summary rather than
+    duplicating the aggregation queries. Uses a lazy import to avoid the
+    circular dependency at module load.
+    """
+    from app.services.trade_processor import get_account_portfolio_summary
+    return get_account_portfolio_summary(db, account_id, tenant_id)
