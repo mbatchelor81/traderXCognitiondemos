@@ -42,6 +42,7 @@ from app.utils.helpers import (
     now_utc,
     validate_trade_side,
     validate_trade_quantity,
+    validate_trade_price,
     validate_trade_state,
     safe_int,
 )
@@ -185,6 +186,47 @@ def validate_trade_request(db: Session, account_id: int, security: str,
 
     logger.info("Trade request validated successfully")
     return True, ""
+
+
+def validate_trade_order(db: Session, account_id: int, security: str,
+                         side: str, quantity: int, price: float,
+                         tenant_id: str) -> Tuple[bool, List[str]]:
+    """
+    Dry-run validation for a trade order — runs all checks from
+    validate_trade_request plus price validation.
+    Returns (is_valid, list_of_errors).
+    """
+    errors: List[str] = []
+
+    if not validate_trade_side(side):
+        errors.append(f"Invalid trade side: {side}. Must be 'Buy' or 'Sell'.")
+
+    if not validate_trade_quantity(quantity):
+        errors.append(
+            f"Invalid trade quantity: {quantity}. "
+            f"Must be between {MIN_TRADE_QUANTITY} and {MAX_TRADE_QUANTITY}."
+        )
+
+    if not validate_trade_price(price):
+        errors.append(
+            f"Invalid trade price: {price}. "
+            f"Must be between {MIN_TRADE_PRICE} and {MAX_TRADE_PRICE}."
+        )
+
+    if not validate_account_exists(db, account_id, tenant_id):
+        errors.append(f"Account {account_id} not found for tenant {tenant_id}.")
+
+    if not validate_security_exists(security):
+        errors.append(f"Security {security} not found in reference data.")
+
+    tenant_sides = TENANT_ALLOWED_SIDES.get(tenant_id, ["Buy", "Sell"])
+    if side in ("Buy", "Sell") and side not in tenant_sides:
+        errors.append(
+            f"Trade side '{side}' not allowed for tenant {tenant_id}. "
+            f"Allowed: {tenant_sides}"
+        )
+
+    return (len(errors) == 0, errors)
 
 
 # =============================================================================

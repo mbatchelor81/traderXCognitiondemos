@@ -38,6 +38,47 @@ class TradeOrderRequest(BaseModel):
     quantity: int
 
 
+class TradeValidateRequest(BaseModel):
+    accountId: int
+    security: str
+    side: str
+    quantity: int
+    price: float
+
+
+# =============================================================================
+# Trade Validation Endpoint
+# =============================================================================
+
+@router.post("/trade/validate")
+def validate_trade(body: TradeValidateRequest, request: Request,
+                   db: Session = Depends(get_db)):
+    """
+    Dry-run validation for a trade order.
+    Returns validation results without creating a trade.
+    """
+    tenant_id = get_tenant_from_request(request)
+
+    logger.info("Trade validation request: account=%d security=%s side=%s "
+                "qty=%d price=%.2f", body.accountId, body.security,
+                body.side, body.quantity, body.price)
+
+    is_valid, errors = trade_processor.validate_trade_order(
+        db=db,
+        account_id=body.accountId,
+        security=body.security,
+        side=body.side,
+        quantity=body.quantity,
+        price=body.price,
+        tenant_id=tenant_id,
+    )
+
+    if not is_valid:
+        raise HTTPException(status_code=400, detail={"errors": errors})
+
+    return {"valid": True, "errors": []}
+
+
 # =============================================================================
 # Trade Submission Endpoint
 # =============================================================================
