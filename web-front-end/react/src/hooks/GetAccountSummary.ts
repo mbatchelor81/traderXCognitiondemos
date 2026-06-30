@@ -11,9 +11,14 @@ export const GetAccountSummary = (
         const { tenant } = useTenant();
         const [summaryData, setSummaryData] = useState<AccountSummary | null>(null);
 
+        // Clear stale data immediately when the account or tenant changes so the
+        // cards never show the previous account's numbers during the refetch.
+        useEffect(() => {
+                setSummaryData(null);
+        }, [accountId, tenant]);
+
         useEffect(() => {
                 if (accountId === 0) {
-                        setSummaryData(null);
                         return;
                 }
 

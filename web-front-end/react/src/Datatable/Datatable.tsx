@@ -194,43 +194,43 @@ export const Datatable = () => {
 				</CardContent>
 			</Card>
 
-                        {/* Summary stat cards */}
-                        {hasAccount && (
-                                <Grid container spacing={2} sx={{ mb: 3 }}>
-                                        <Grid item xs={12} sm={6} md={3}>
-                                                <StatCard
-                                                        title="Total Trades"
-                                                        value={summary?.totalTrades ?? 0}
-                                                        icon={<TrendingUpIcon sx={{ fontSize: 32 }} />} 
-                                                        color="#3b82f6"
-                                                />
-                                        </Grid>
-                                        <Grid item xs={12} sm={6} md={3}>
-                                                <StatCard
-                                                        title="Settled Trades"
-                                                        value={summary?.settledTrades ?? 0}
-                                                        icon={<BarChartIcon sx={{ fontSize: 32 }} />} 
-                                                        color="#8b5cf6"
-                                                />
-                                        </Grid>
-                                        <Grid item xs={12} sm={6} md={3}>
-                                                <StatCard
-                                                        title="Pending Trades"
-                                                        value={summary?.pendingTrades ?? 0}
-                                                        icon={<AccountBalanceIcon sx={{ fontSize: 32 }} />} 
-                                                        color="#10b981"
-                                                />
-                                        </Grid>
-                                        <Grid item xs={12} sm={6} md={3}>
-                                                <StatCard
-                                                        title="Net Quantity"
-                                                        value={summary?.netQuantity ?? 0}
-                                                        icon={<ShowChartIcon sx={{ fontSize: 32 }} />} 
-                                                        color="#f59e0b"
-                                                />
-                                        </Grid>
-                                </Grid>
-                        )}
+			{/* Summary stat cards */}
+			{hasAccount && (
+				<Grid container spacing={2} sx={{ mb: 3 }}>
+					<Grid item xs={12} sm={6} md={3}>
+						<StatCard
+							title="Total Trades"
+							value={summary?.totalTrades ?? 0}
+							icon={<TrendingUpIcon sx={{ fontSize: 32 }} />}
+							color="#3b82f6"
+						/>
+					</Grid>
+					<Grid item xs={12} sm={6} md={3}>
+						<StatCard
+							title="Settled Trades"
+							value={summary?.settledTrades ?? 0}
+							icon={<BarChartIcon sx={{ fontSize: 32 }} />}
+							color="#8b5cf6"
+						/>
+					</Grid>
+					<Grid item xs={12} sm={6} md={3}>
+						<StatCard
+							title="Pending Trades"
+							value={summary?.pendingTrades ?? 0}
+							icon={<AccountBalanceIcon sx={{ fontSize: 32 }} />}
+							color="#10b981"
+						/>
+					</Grid>
+					<Grid item xs={12} sm={6} md={3}>
+						<StatCard
+							title="Net Quantity"
+							value={summary?.netQuantity ?? 0}
+							icon={<ShowChartIcon sx={{ fontSize: 32 }} />}
+							color="#f59e0b"
+						/>
+					</Grid>
+				</Grid>
+			)}
 			{/* Grids or empty state */}
 			{!hasAccount ? (
 				<Box
