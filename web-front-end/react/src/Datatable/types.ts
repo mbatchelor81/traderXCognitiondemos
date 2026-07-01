@@ -1,7 +1,7 @@
 export type TradeSide = 'Buy' | 'Sell';
 
 export interface TradeData {
-	id?: string;
+	id?: number;
 	accountId?: number;
 	security: string;
 	side?: TradeSide;

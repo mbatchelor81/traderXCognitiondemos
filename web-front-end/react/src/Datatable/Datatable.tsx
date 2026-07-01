@@ -11,6 +11,15 @@ import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
+import CancelIcon from '@mui/icons-material/Cancel';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
@@ -22,6 +31,8 @@ import { ColDef, ICellRendererParams } from 'ag-grid-community';
 import { PositionData, TradeData } from './types';
 import { AccountsDropdown } from '../AccountsDropdown';
 import { useTenant } from '../TenantContext';
+import { fetchWithTenant } from '../fetchWithTenant';
+import { Environment } from '../env';
 
 const PUBLISH = 'publish';
 const SUBSCRIBE = 'subscribe';
@@ -69,6 +80,68 @@ const StateCellRenderer = (params: ICellRendererParams) => {
 				border: `1px solid ${style.border}`,
 			}}
 		/>
+	);
+};
+
+const CancelTradeCellRenderer = (params: ICellRendererParams) => {
+	const trade = params.data as TradeData;
+	const [confirmOpen, setConfirmOpen] = useState(false);
+	const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+	const [loading, setLoading] = useState(false);
+
+	const canCancel = trade?.state === 'New' || trade?.state === 'Processing';
+
+	const handleCancel = async () => {
+		setConfirmOpen(false);
+		setLoading(true);
+		try {
+			const response = await fetchWithTenant(`${Environment.trade_service_url}/trade/${trade.id}/cancel`, {
+				method: 'POST',
+			});
+			if (response.ok) {
+				setSnackbar({ open: true, message: 'Trade cancelled successfully', severity: 'success' });
+			} else {
+				const err = await response.json();
+				setSnackbar({ open: true, message: err.detail || 'Failed to cancel trade', severity: 'error' });
+			}
+		} catch (e) {
+			setSnackbar({ open: true, message: 'Network error cancelling trade', severity: 'error' });
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	return (
+		<>
+			<Button
+				size="small"
+				variant="outlined"
+				color="error"
+				startIcon={<CancelIcon />}
+				disabled={!canCancel || loading}
+				onClick={() => setConfirmOpen(true)}
+				sx={{ textTransform: 'none', fontSize: '0.7rem', py: 0.25, minWidth: 0 }}
+			>
+				Cancel
+			</Button>
+			<Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+				<DialogTitle>Cancel Trade</DialogTitle>
+				<DialogContent>
+					<DialogContentText>
+						Are you sure you want to cancel trade #{trade?.id} ({trade?.security}, {trade?.side} {trade?.quantity})?
+					</DialogContentText>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={() => setConfirmOpen(false)}>No</Button>
+					<Button onClick={handleCancel} color="error" variant="contained">Yes, Cancel Trade</Button>
+				</DialogActions>
+			</Dialog>
+			<Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
+				<Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
+					{snackbar.message}
+				</Alert>
+			</Snackbar>
+		</>
 	);
 };
 
@@ -130,6 +203,15 @@ export const Datatable = () => {
 		{ field: 'side', headerName: 'Side', flex: 1, minWidth: 90, cellRenderer: SideCellRenderer },
 		{ field: 'state', headerName: 'State', flex: 1, minWidth: 100, cellRenderer: StateCellRenderer },
 		{ field: 'updated', headerName: 'Updated', flex: 1.2, minWidth: 140 },
+		{
+			headerName: 'Actions',
+			field: 'id',
+			flex: 0.8,
+			minWidth: 90,
+			sortable: false,
+			filter: false,
+			cellRenderer: CancelTradeCellRenderer,
+		},
 	], []);
 
 	const positionColumnDefs = useMemo<ColDef<PositionData>[]>(() => [
@@ -158,10 +240,26 @@ export const Datatable = () => {
 			socketModule.socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/positions`);
 			socketModule.socket.on(PUBLISH, (data: { topic: string; payload: TradeData | PositionData }) => {
 				if (data.topic === `/accounts/${event.target.value}/trades`) {
-					setTradeRowData((current: TradeData[]) => [...current, data.payload as TradeData]);
+					setTradeRowData((current: TradeData[]) => {
+						const existingIndex = current.findIndex(t => t.id === (data.payload as TradeData).id);
+						if (existingIndex >= 0) {
+							const updated = [...current];
+							updated[existingIndex] = data.payload as TradeData;
+							return updated;
+						}
+						return [...current, data.payload as TradeData];
+					});
 				}
 				if (data.topic === `/accounts/${event.target.value}/positions`) {
-					setPositionRowData((current: PositionData[]) => [...current, data.payload as PositionData]);
+					setPositionRowData((current: PositionData[]) => {
+						const existingIndex = current.findIndex(p => p.security === (data.payload as PositionData).security);
+						if (existingIndex >= 0) {
+							const updated = [...current];
+							updated[existingIndex] = data.payload as PositionData;
+							return updated;
+						}
+						return [...current, data.payload as PositionData];
+					});
 				}
 			});
 		}

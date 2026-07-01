@@ -478,6 +478,85 @@ async def process_trade(db: Session, account_id: int, security: str,
     return result
 
 
+async def cancel_trade(db: Session, trade_id: int, tenant_id: str) -> Dict:
+    """
+    Cancel a trade and reverse its position impact.
+    Only trades in 'New' or 'Processing' state can be cancelled.
+    """
+    logger.info("Cancelling trade %d for tenant %s", trade_id, tenant_id)
+
+    # Step 1: Look up the trade
+    trade = get_trade_by_id(db, trade_id, tenant_id)
+    if trade is None:
+        logger.error("Trade %d not found for tenant %s", trade_id, tenant_id)
+        return {
+            "success": False,
+            "error": f"Trade {trade_id} not found.",
+            "trade": None,
+            "position": None,
+        }
+
+    # Step 2: Check if cancellation is allowed
+    if not can_transition(trade.state, "Cancelled"):
+        logger.error("Cannot cancel trade %d in state %s", trade_id, trade.state)
+        return {
+            "success": False,
+            "error": f"Cannot cancel trade in '{trade.state}' state.",
+            "trade": trade.to_dict(),
+            "position": None,
+        }
+
+    # Step 3: Reverse position delta if trade is in "Processing" state
+    position = None
+    if trade.state == "Processing":
+        reverse_delta = -trade.quantity if trade.side == "Buy" else trade.quantity
+        position = update_position(
+            db, trade.account_id, trade.security, reverse_delta, tenant_id
+        )
+        logger.info(
+            "Reversed position for trade %d: delta=%d", trade_id, reverse_delta
+        )
+
+    # Step 4: Transition trade state to Cancelled
+    if not transition_trade_state(db, trade, "Cancelled"):
+        logger.error("Failed to transition trade %d to Cancelled", trade.id)
+        return {
+            "success": False,
+            "error": "Failed to cancel trade — state transition failed.",
+            "trade": trade.to_dict(),
+            "position": None,
+        }
+
+    # Step 5: Commit and refresh
+    db.commit()
+    db.refresh(trade)
+    if position is not None:
+        db.refresh(position)
+
+    # Step 6: Publish Socket.IO events
+    try:
+        await publish_trade_update(trade)
+        if position is not None:
+            await publish_position_update(position)
+    except Exception as e:
+        logger.error("Error publishing Socket.io events for cancel: %s", str(e))
+
+    # Step 7: Log audit
+    log_trade_event(
+        trade.id, trade.account_id, "CANCELLED", tenant_id,
+        f"trade_id={trade.id} security={trade.security} side={trade.side} "
+        f"qty={trade.quantity} reversed_position={position is not None}"
+    )
+
+    logger.info("Trade %d cancelled successfully", trade_id)
+
+    return {
+        "success": True,
+        "trade": trade.to_dict(),
+        "position": position.to_dict() if position is not None else None,
+    }
+
+
 # =============================================================================
 # Trade Queries
 # =============================================================================

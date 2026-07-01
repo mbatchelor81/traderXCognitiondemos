@@ -42,6 +42,24 @@ class TradeOrderRequest(BaseModel):
 # Trade Submission Endpoint
 # =============================================================================
 
+@router.post("/trade/{trade_id}/cancel")
+async def cancel_trade_endpoint(trade_id: int, request: Request,
+                                db: Session = Depends(get_db)):
+    """Cancel a trade by ID. Only New/Processing trades can be cancelled."""
+    tenant_id = get_tenant_from_request(request)
+
+    result = await trade_processor.cancel_trade(
+        db=db,
+        trade_id=trade_id,
+        tenant_id=tenant_id,
+    )
+
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    return result
+
+
 @router.post("/trade/")
 async def submit_trade(body: TradeOrderRequest, request: Request,
                        db: Session = Depends(get_db)):
