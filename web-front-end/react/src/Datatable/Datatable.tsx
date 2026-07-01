@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 
 import 'ag-grid-community/styles/ag-grid.css';
@@ -16,6 +16,9 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import * as socketModule from '../socket';
+import { Environment } from '../env';
+import { fetchWithTenant } from '../fetchWithTenant';
+import { AccountSummaryData } from '../hooks/GetAccountSummary';
 import { GetPositions, GetTrades } from '../hooks';
 import { CreateAccount, CreateAccountUser, CreateTradeButton } from '../ActionButtons';
 import { ColDef, ICellRendererParams } from 'ag-grid-community';
@@ -79,6 +82,15 @@ const QuantityCellRenderer = (params: ICellRendererParams) => {
 	return <span style={{ color, fontWeight: 500 }}>{val.toLocaleString()}</span>;
 };
 
+const EMPTY_SUMMARY: AccountSummaryData = {
+	totalTrades: 0,
+	settledTrades: 0,
+	pendingTrades: 0,
+	totalBuyQuantity: 0,
+	totalSellQuantity: 0,
+	netQuantity: 0,
+};
+
 interface StatCardProps {
 	title: string;
 	value: string | number;
@@ -112,9 +124,11 @@ export const Datatable = () => {
 	const [positionRowData, setPositionRowData] = useState<PositionData[]>([]);
 	const [selectedId, setSelectedId] = useState<number>(0);
 	const [currentAccount, setCurrentAccount] = useState<string>('');
+	const summaryAbortRef = useRef<AbortController | null>(null);
 
 	const positionData = GetPositions(selectedId);
 	const tradeData = GetTrades(selectedId);
+	const [accountSummary, setAccountSummary] = useState<AccountSummaryData>(EMPTY_SUMMARY);
 
 	// Reset selection when tenant changes
 	useEffect(() => {
@@ -122,6 +136,7 @@ export const Datatable = () => {
 		setCurrentAccount('');
 		setTradeRowData([]);
 		setPositionRowData([]);
+		setAccountSummary(EMPTY_SUMMARY);
 	}, [tenant]);
 
 	const tradeColumnDefs = useMemo<ColDef<TradeData>[]>(() => [
@@ -146,6 +161,11 @@ export const Datatable = () => {
 
 	const handleChange = useCallback((event: SelectChangeEvent<string>) => {
 		socketModule.socket.off(PUBLISH);
+		setAccountSummary(EMPTY_SUMMARY);
+		if (summaryAbortRef.current) {
+			summaryAbortRef.current.abort();
+			summaryAbortRef.current = null;
+		}
 		if (selectedId !== 0) {
 			socketModule.socket.emit(UNSUBSCRIBE, `/accounts/${selectedId}/trades`);
 			socketModule.socket.emit(UNSUBSCRIBE, `/accounts/${selectedId}/positions`);
@@ -154,11 +174,31 @@ export const Datatable = () => {
 		setSelectedId(numericId);
 		setCurrentAccount(event.target.value);
 		if (event.target.value) {
+			// Fetch initial summary for the newly selected account
+			const initController = new AbortController();
+			summaryAbortRef.current = initController;
+			fetchWithTenant(
+				`${Environment.account_service_url}/account/${event.target.value}/summary`,
+				{ signal: initController.signal }
+			).then(res => { if (res.ok) return res.json(); })
+				.then(json => { if (json) setAccountSummary(json); })
+				.catch(err => { if (err.name !== 'AbortError') console.error('Summary fetch failed', err); });
+
 			socketModule.socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/trades`);
 			socketModule.socket.emit(SUBSCRIBE, `/accounts/${event.target.value}/positions`);
 			socketModule.socket.on(PUBLISH, (data: { topic: string; payload: TradeData | PositionData }) => {
 				if (data.topic === `/accounts/${event.target.value}/trades`) {
-					setTradeRowData((current: TradeData[]) => [...current, data.payload as TradeData]);
+						setTradeRowData((current: TradeData[]) => [...current, data.payload as TradeData]);
+							// Re-fetch summary stats when a new trade arrives
+							if (summaryAbortRef.current) { summaryAbortRef.current.abort(); }
+							const controller = new AbortController();
+							summaryAbortRef.current = controller;
+						fetchWithTenant(
+							`${Environment.account_service_url}/account/${event.target.value}/summary`,
+							{ signal: controller.signal }
+						).then(res => { if (res.ok) return res.json(); })
+							.then(json => { if (json) setAccountSummary(json); })
+							.catch(err => { if (err.name !== 'AbortError') console.error('Summary fetch failed', err); });
 				}
 				if (data.topic === `/accounts/${event.target.value}/positions`) {
 					setPositionRowData((current: PositionData[]) => [...current, data.payload as PositionData]);
@@ -171,6 +211,7 @@ export const Datatable = () => {
 		setPositionRowData(positionData);
 		setTradeRowData(tradeData);
 	}, [positionData, tradeData]);
+
 
 	const hasAccount = selectedId !== 0;
 
@@ -196,34 +237,34 @@ export const Datatable = () => {
 			{/* Summary stat cards */}
 			{hasAccount && (
 				<Grid container spacing={2} sx={{ mb: 3 }}>
-					<Grid item xs={12} sm={6} md={3}>
+						<Grid item xs={12} sm={6} md={3}>
 						<StatCard
 							title="Total Trades"
-							value={tradeRowData.length}
+							value={accountSummary.totalTrades}
 							icon={<TrendingUpIcon sx={{ fontSize: 32 }} />}
 							color="#3b82f6"
 						/>
 					</Grid>
 					<Grid item xs={12} sm={6} md={3}>
 						<StatCard
-							title="Total Positions"
-							value={positionRowData.length}
+							title="Settled Trades"
+							value={accountSummary.settledTrades}
 							icon={<BarChartIcon sx={{ fontSize: 32 }} />}
 							color="#8b5cf6"
 						/>
 					</Grid>
 					<Grid item xs={12} sm={6} md={3}>
 						<StatCard
-							title="Account"
-							value={currentAccount ? `#${currentAccount}` : '--'}
+							title="Pending Trades"
+							value={accountSummary.pendingTrades}
 							icon={<AccountBalanceIcon sx={{ fontSize: 32 }} />}
 							color="#10b981"
 						/>
 					</Grid>
 					<Grid item xs={12} sm={6} md={3}>
 						<StatCard
-							title="Live Feed"
-							value="Active"
+							title="Net Quantity"
+							value={accountSummary.netQuantity}
 							icon={<ShowChartIcon sx={{ fontSize: 32 }} />}
 							color="#f59e0b"
 						/>
