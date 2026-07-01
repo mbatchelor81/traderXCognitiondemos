@@ -100,3 +100,24 @@ def list_trades_by_account(account_id: int, request: Request,
     tenant_id = get_tenant_from_request(request)
     trades = trade_processor.get_trades_for_account(db, account_id, tenant_id)
     return [t.to_dict() for t in trades]
+
+
+# =============================================================================
+# Account Summary Endpoint
+# =============================================================================
+
+@router.get("/account/{account_id}/summary")
+def get_account_summary(account_id: int, request: Request,
+                        db: Session = Depends(get_db)):
+    """
+    Get aggregated trade statistics for an account.
+    Leverages the existing get_account_portfolio_summary() function
+    in trade_processor and returns the statistics subset.
+    """
+    tenant_id = get_tenant_from_request(request)
+    summary = trade_processor.get_account_portfolio_summary(db, account_id, tenant_id)
+
+    if "error" in summary:
+        raise HTTPException(status_code=404, detail=summary["error"])
+
+    return summary["statistics"]
