@@ -136,6 +136,55 @@ def upsert_account_user(db: Session, account_id: int, username: str,
 
 
 # =============================================================================
+# Null-field queries
+# =============================================================================
+
+def get_accounts_with_null_fields(db: Session, tenant_id: str) -> List[Account]:
+    """Get all accounts that have a null or empty display_name for a tenant."""
+    return db.query(Account).filter(
+        Account.tenant_id == tenant_id,
+        (Account.display_name == None) | (Account.display_name == ""),  # noqa: E711
+    ).all()
+
+
+def validate_accounts_null_fields(
+    db: Session, account_ids: List[int], tenant_id: str
+) -> List[dict]:
+    """
+    Check a list of account IDs for null/empty display_name fields.
+    Returns a list of dicts describing each account and its null-field status.
+    """
+    results: List[dict] = []
+    for account_id in account_ids:
+        account = get_account_by_id(db, account_id, tenant_id)
+        if account is None:
+            results.append({
+                "accountId": account_id,
+                "found": False,
+                "hasNullFields": False,
+                "nullFields": [],
+            })
+            continue
+
+        null_fields: List[str] = []
+        if account.display_name is None or account.display_name == "":
+            null_fields.append("displayName")
+
+        results.append({
+            "accountId": account_id,
+            "found": True,
+            "hasNullFields": len(null_fields) > 0,
+            "nullFields": null_fields,
+        })
+
+    log_audit_event(
+        "ACCOUNT_NULL_VALIDATION", tenant_id,
+        f"validated {len(account_ids)} accounts"
+    )
+    return results
+
+
+# =============================================================================
 # Cross-domain helper (circular dependency — intentional smell)
 # =============================================================================
 
