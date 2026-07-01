@@ -419,7 +419,7 @@ def _assess_trade_risk(db: Session, trade: Trade, account_id: int,
     )
 
     # Get the sector risk weight for this security
-    sector = stock_info["sector"]
+    sector = stock_info.get("sector", "")
     sector_weight = SECTOR_RISK_WEIGHTS.get(sector, 1.0)
 
     logger.info("Security %s is in sector %s (weight: %.2f)",
