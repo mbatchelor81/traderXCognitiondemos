@@ -17,3 +17,19 @@ export interface PositionData {
 	quantity: number;
 	updated: Date;
 }
+
+export interface AccountSummaryStatistics {
+	totalTrades: number;
+	settledTrades: number;
+	pendingTrades: number;
+	totalBuyQuantity: number;
+	totalSellQuantity: number;
+	netQuantity: number;
+}
+
+export interface AccountSummaryData {
+	account: Record<string, unknown>;
+	users: Record<string, unknown>[];
+	positions: Record<string, unknown>[];
+	statistics: AccountSummaryStatistics;
+}
