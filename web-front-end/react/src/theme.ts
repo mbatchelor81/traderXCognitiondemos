@@ -1,6 +1,22 @@
-import { createTheme } from '@mui/material/styles';
+import { createTheme, Theme } from '@mui/material/styles';
 
-const theme = createTheme({
+const THEME_STORAGE_KEY = 'traderx-theme-mode';
+
+export type ThemeMode = 'light' | 'dark';
+
+export function getStoredThemeMode(): ThemeMode {
+  const stored = localStorage.getItem(THEME_STORAGE_KEY);
+  if (stored === 'light' || stored === 'dark') {
+    return stored;
+  }
+  return 'dark';
+}
+
+export function storeThemeMode(mode: ThemeMode): void {
+  localStorage.setItem(THEME_STORAGE_KEY, mode);
+}
+
+const darkTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: { main: '#3b82f6' },
@@ -42,4 +58,51 @@ const theme = createTheme({
   },
 });
 
-export default theme;
+const lightTheme = createTheme({
+  palette: {
+    mode: 'light',
+    primary: { main: '#2563eb' },
+    secondary: { main: '#7c3aed' },
+    background: { default: '#f3f4f6', paper: '#ffffff' },
+    success: { main: '#059669' },
+    error: { main: '#dc2626' },
+    text: { primary: '#111827', secondary: '#4b5563' },
+  },
+  typography: {
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+  },
+  shape: { borderRadius: 8 },
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+          border: '1px solid rgba(0,0,0,0.12)',
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          backgroundImage: 'none',
+          border: '1px solid rgba(0,0,0,0.12)',
+        },
+      },
+    },
+  },
+});
+
+export function getTheme(mode: ThemeMode): Theme {
+  return mode === 'dark' ? darkTheme : lightTheme;
+}
+
+// Default export for backward compatibility
+export default darkTheme;
