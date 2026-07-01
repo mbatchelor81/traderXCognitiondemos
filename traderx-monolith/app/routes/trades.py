@@ -9,9 +9,11 @@ intentionally inconsistent (architectural smell).
 """
 
 import logging
+import traceback
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
@@ -55,14 +57,32 @@ async def submit_trade(body: TradeOrderRequest, request: Request,
     logger.info("Trade order received: account=%d security=%s side=%s qty=%d",
                 body.accountId, body.security, body.side, body.quantity)
 
-    result = await trade_processor.process_trade(
-        db=db,
-        account_id=body.accountId,
-        security=body.security,
-        side=body.side,
-        quantity=body.quantity,
-        tenant_id=tenant_id,
-    )
+    try:
+        result = await trade_processor.process_trade(
+            db=db,
+            account_id=body.accountId,
+            security=body.security,
+            side=body.side,
+            quantity=body.quantity,
+            tenant_id=tenant_id,
+        )
+    except Exception as exc:
+        # Extract the failing frame from the traceback for context
+        tb = traceback.extract_tb(exc.__traceback__)
+        failing_frame = tb[-1] if tb else None
+        location = (
+            f"{failing_frame.filename}:{failing_frame.lineno} in {failing_frame.name}"
+            if failing_frame
+            else "unknown"
+        )
+        logger.error("Trade processing failed: %s: %s at %s",
+                     type(exc).__name__, exc, location)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": "Trade processing failed during execution",
+            },
+        )
 
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["error"])
