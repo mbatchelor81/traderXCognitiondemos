@@ -33,6 +33,7 @@ def create_tables():
     from app.models.account import Account, AccountUser  # noqa: F811
     from app.models.trade import Trade  # noqa: F811
     from app.models.position import Position  # noqa: F811
+    from app.models.trade_audit import TradeAudit  # noqa: F811
 
     Base.metadata.create_all(bind=engine)
 
