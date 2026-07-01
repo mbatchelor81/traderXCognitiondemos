@@ -1,4 +1,4 @@
-fastapi
+fastapi>=0.135.0,<0.136.3
 uvicorn[standard]
 sqlalchemy
 python-socketio
