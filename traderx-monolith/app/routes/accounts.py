@@ -11,6 +11,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import *  # noqa: F401,F403 — intentional global config import
@@ -72,6 +73,28 @@ def update_account(body: AccountCreate, request: Request,
         db, body.id, body.displayName, tenant_id
     )
     return account.to_dict()
+
+
+@router.get("/account/search")
+def search_accounts(request: Request, q: str,
+                    db: Session = Depends(get_db)):
+    """
+    Search accounts by display name (case-insensitive substring match).
+    Scoped to the current tenant.
+    """
+    tenant_id = get_tenant_from_request(request)
+
+    query = (
+        "SELECT id, display_name, tenant_id FROM accounts "
+        "WHERE tenant_id = '" + tenant_id + "' "
+        "AND display_name LIKE '%" + q + "%'"
+    )
+    rows = db.execute(text(query)).fetchall()
+
+    return [
+        {"id": row[0], "displayName": row[1], "tenantId": row[2]}
+        for row in rows
+    ]
 
 
 @router.get("/account/{account_id}")
