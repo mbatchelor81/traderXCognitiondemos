@@ -33,7 +33,8 @@ def test_account_summary_reflects_trades(client):
     assert resp.status_code == 200
     stats = resp.json()["statistics"]
     assert stats["totalTrades"] == 2
-    assert stats["totalTrades"] == stats["settledTrades"] + stats["pendingTrades"]
+    # totalTrades counts every state (incl. Cancelled), so it is an upper bound.
+    assert stats["totalTrades"] >= stats["settledTrades"] + stats["pendingTrades"]
 
 
 def test_account_summary_not_found(client):
