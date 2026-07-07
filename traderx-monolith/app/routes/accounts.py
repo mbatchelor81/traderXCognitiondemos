@@ -74,6 +74,23 @@ def update_account(body: AccountCreate, request: Request,
     return account.to_dict()
 
 
+@router.get("/account/search")
+def search_accounts(request: Request, q: str,
+                    db: Session = Depends(get_db)):
+    """
+    Search accounts by display name (case-insensitive substring match).
+    Scoped to the current tenant.
+    """
+    tenant_id = get_tenant_from_request(request)
+
+    accounts = db.query(Account).filter(
+        Account.tenant_id == tenant_id,
+        Account.display_name.ilike(f"%{q}%"),
+    ).all()
+
+    return [a.to_dict() for a in accounts]
+
+
 @router.get("/account/{account_id}")
 def get_account(account_id: int, request: Request,
                 db: Session = Depends(get_db)):
