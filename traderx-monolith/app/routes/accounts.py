@@ -11,7 +11,6 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import *  # noqa: F401,F403 — intentional global config import
@@ -84,17 +83,12 @@ def search_accounts(request: Request, q: str,
     """
     tenant_id = get_tenant_from_request(request)
 
-    query = (
-        "SELECT id, display_name, tenant_id FROM accounts "
-        "WHERE tenant_id = '" + tenant_id + "' "
-        "AND display_name LIKE '%" + q + "%'"
-    )
-    rows = db.execute(text(query)).fetchall()
+    accounts = db.query(Account).filter(
+        Account.tenant_id == tenant_id,
+        Account.display_name.ilike(f"%{q}%"),
+    ).all()
 
-    return [
-        {"id": row[0], "displayName": row[1], "tenantId": row[2]}
-        for row in rows
-    ]
+    return [a.to_dict() for a in accounts]
 
 
 @router.get("/account/{account_id}")
