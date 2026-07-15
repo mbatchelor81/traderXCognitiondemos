@@ -45,7 +45,7 @@
     ]
   },
   "overrides": {
-    "shell-quote": ">=1.8.4"
+    "shell-quote": ">=1.8.4 <2.0.0"
   },
   "devDependencies": {
     "react-scripts": "5.0.1",
