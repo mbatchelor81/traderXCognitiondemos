@@ -44,6 +44,9 @@
       "last 1 safari version"
     ]
   },
+  "overrides": {
+    "shell-quote": ">=1.8.4"
+  },
   "devDependencies": {
     "react-scripts": "5.0.1",
     "@types/react": "^18.2.0",
