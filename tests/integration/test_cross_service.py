@@ -157,14 +157,17 @@ def test_end_to_end_trade():
     account_id = account.json()["id"]
     print(f"created account {account_id}")
 
-    person = requests.get(
+    search = requests.get(
         "http://localhost:8005/people/GetMatchingPeople",
-        params={"SearchText": "a"},
+        params={"SearchText": "smith"},
         timeout=HTTP_TIMEOUT_S,
-    ).json()
-    people = person.get("People", person) if isinstance(person, dict) else person
+    )
+    check(search.status_code == 200, f"people search failed: {search.status_code} {search.text}")
+    payload = search.json()
+    people = payload.get("People", payload) if isinstance(payload, dict) else payload
     check(len(people) > 0, "people-service returned no people to attach to the account")
     logon_id = people[0].get("logonId") or people[0].get("LogonId")
+    check(logon_id, f"people-service response has no logon id: {people[0]}")
 
     account_user = requests.post(
         "http://localhost:8001/accountuser/",
