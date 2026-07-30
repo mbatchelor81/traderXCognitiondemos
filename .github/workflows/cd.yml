@@ -1,0 +1,269 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+      # - feature/process-b-infrastructure
+      #
+      # Deliberately commented out. Enabling deploys from the migration branch
+      # requires the Terraform infrastructure to exist first: the EKS cluster
+      # `traderx-acme-corp`, the GitHub OIDC provider + deploy role exposed as
+      # the `AWS_ROLE_ARN` secret, the ALB / ingress controller, and all six ECR
+      # repositories (`traderx-<service>-acme-corp`). Until those exist every job
+      # below fails at the ECR login / `aws eks update-kubeconfig` step.
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment to deploy
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: traderx-acme-corp
+  K8S_NAMESPACE: traderx-acme-corp
+  KUSTOMIZE_OVERLAY: k8s/overlays/tenant-acme_corp
+  TENANT_ID: acme_corp
+  TENANT_SLUG: acme-corp
+
+# Overlapping deploys to the same tenant cluster cancel the older run.
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    name: Build and push ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: account-service
+            context: services/account-service
+          - name: trading-service
+            context: services/trading-service
+          - name: position-service
+            context: services/position-service
+          - name: reference-data-service
+            context: services/reference-data-service
+          - name: people-service
+            context: services/people-service
+          - name: web-frontend
+            context: web-front-end/react
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          ECR_REPOSITORY: traderx-${{ matrix.name }}-acme-corp
+          IMAGE_TAG: ${{ github.sha }}
+          # A single ALB fronts every service on disjoint path prefixes
+          # (/account, /trade(s), /positions, /stocks, /people), so all five
+          # frontend service URLs point at the same host.
+          ALB_URL_VAR: ${{ vars.ALB_URL }}
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.name }}" = "web-frontend" ]; then
+            ALB_HOST="${ALB_URL_VAR:-traderx-acme-corp.us-east-1.elb.amazonaws.com}"
+            ALB_HOST="${ALB_HOST#http://}"
+            ALB_HOST="${ALB_HOST#https://}"
+            ALB_HOST="${ALB_HOST%/}"
+            BASE_URL="http://${ALB_HOST}"
+            echo "Building web-frontend against ${BASE_URL}"
+            docker build \
+              --build-arg REACT_APP_TENANT_ID=acme_corp \
+              --build-arg "REACT_APP_ACCOUNT_SERVICE_URL=${BASE_URL}" \
+              --build-arg "REACT_APP_TRADING_SERVICE_URL=${BASE_URL}" \
+              --build-arg "REACT_APP_POSITION_SERVICE_URL=${BASE_URL}" \
+              --build-arg "REACT_APP_REFERENCE_DATA_SERVICE_URL=${BASE_URL}" \
+              --build-arg "REACT_APP_PEOPLE_SERVICE_URL=${BASE_URL}" \
+              -t "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" \
+              -t "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest" \
+              "${{ matrix.context }}"
+          else
+            docker build \
+              -t "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" \
+              -t "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest" \
+              "${{ matrix.context }}"
+          fi
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+
+  deploy:
+    name: Deploy to EKS
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Install kustomize
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/kustomize
+          kustomize version
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name traderx-acme-corp --region us-east-1
+
+      - name: Pin images to the pushed commit
+        working-directory: ${{ env.KUSTOMIZE_OVERLAY }}
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # The kustomize bases reference the images by their unqualified
+          # `traderx-<name>` name; each is repointed at the tenant ECR repo.
+          for name in account-service trading-service position-service \
+                      reference-data-service people-service web-frontend; do
+            kustomize edit set image \
+              "traderx-${name}=${ECR_REGISTRY}/traderx-${name}-acme-corp:${IMAGE_TAG}"
+          done
+          cat kustomization.yaml
+
+      - name: Apply manifests
+        run: kubectl apply -k "${KUSTOMIZE_OVERLAY}/"
+
+      - name: Wait for rollouts
+        run: |
+          set -euo pipefail
+          for name in account-service trading-service position-service \
+                      reference-data-service people-service web-frontend; do
+            kubectl rollout status "deployment/${name}" \
+              -n "${K8S_NAMESPACE}" --timeout=300s
+          done
+
+      - name: Verify all pods are Running and ready
+        run: |
+          set -euo pipefail
+          kubectl get pods -n "${K8S_NAMESPACE}" -o wide
+          bad=$(kubectl get pods -n "${K8S_NAMESPACE}" -o json | jq -r '
+            .items[]
+            | select(
+                (.status.phase != "Running")
+                or ([.status.containerStatuses[]? | select(.ready == false)] | length > 0)
+                or ((.status.containerStatuses // []) | length == 0)
+              )
+            | "\(.metadata.name) phase=\(.status.phase)"
+          ')
+          if [ -n "${bad}" ]; then
+            echo "::error::Pods not Running/ready:"
+            echo "${bad}"
+            kubectl describe pods -n "${K8S_NAMESPACE}"
+            exit 1
+          fi
+          echo "All pods in ${K8S_NAMESPACE} are Running with all containers ready."
+
+  smoke-test:
+    name: Smoke test
+    runs-on: ubuntu-latest
+    needs: deploy
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name traderx-acme-corp --region us-east-1
+
+      - name: Resolve ALB hostname
+        id: alb
+        run: |
+          set -euo pipefail
+          alb=""
+          for _ in $(seq 1 30); do
+            alb=$(kubectl get ingress -n "${K8S_NAMESPACE}" \
+              -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
+            if [ -n "${alb}" ]; then
+              break
+            fi
+            echo "Waiting for the ingress to be assigned a load balancer..."
+            sleep 10
+          done
+          if [ -z "${alb}" ]; then
+            echo "::error::No ALB hostname on any ingress in ${K8S_NAMESPACE}"
+            kubectl get ingress -n "${K8S_NAMESPACE}" -o wide
+            exit 1
+          fi
+          echo "alb=${alb}" >> "${GITHUB_OUTPUT}"
+
+      - name: Wait for the ALB to resolve and serve traffic
+        env:
+          ALB: ${{ steps.alb.outputs.alb }}
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 60); do
+            if getent hosts "${ALB}" >/dev/null 2>&1; then
+              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "http://${ALB}/health" || echo 000)
+              echo "http://${ALB}/health -> ${code}"
+              if [ "${code}" != "000" ]; then
+                exit 0
+              fi
+            else
+              echo "Waiting for DNS for ${ALB}..."
+            fi
+            sleep 10
+          done
+          echo "::error::${ALB} never became reachable"
+          exit 1
+
+      - name: Install smoke test dependencies
+        run: pip install -r tests/smoke/requirements.txt
+
+      - name: Run smoke tests
+        env:
+          SMOKE_TEST_URL: http://${{ steps.alb.outputs.alb }}
+          TENANT_ID: acme_corp
+        run: python -m pytest tests/smoke/ -v
