@@ -21,6 +21,7 @@ from app.middleware import (
     RequestTimingMiddleware,
     TenantMiddleware,
 )
+from app.observability import configure_tracing, register_observability
 from app.routes.reference_data import router as reference_data_router
 from app.services import stocks_service
 
@@ -77,6 +78,9 @@ def create_app() -> FastAPI:
     @app.get("/health", summary="Liveness and readiness probe")
     def health() -> dict:
         return {"status": "UP", "service": SERVICE_NAME, "tenant": TENANT_ID}
+
+    register_observability(app, health_endpoint=health)
+    configure_tracing(app)
 
     logger.info("application_created", extra={"tenant_id": TENANT_ID})
     return app

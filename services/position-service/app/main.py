@@ -27,6 +27,7 @@ from app.middleware import (
     RequestTimingMiddleware,
     TenantMiddleware,
 )
+from app.observability import configure_tracing, register_observability
 from app.routes import positions
 
 configure_logging()
@@ -91,6 +92,9 @@ def create_app() -> FastAPI:
                 },
             )
         return {"status": "UP", "service": SERVICE_NAME, "tenant": TENANT_ID}
+
+    register_observability(app, health_endpoint=health)
+    configure_tracing(app)
 
     return app
 
