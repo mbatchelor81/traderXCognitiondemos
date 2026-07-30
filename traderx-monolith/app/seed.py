@@ -1,6 +1,6 @@
 """
-Database seeding script for TraderX Monolith.
-Populates the database with sample data distributed across 3 tenants.
+Database seeding script for TraderX.
+Populates this instance's tenant database with its sample data.
 Runs automatically on first startup if the database is empty.
 """
 
@@ -25,12 +25,11 @@ def is_database_empty(db: Session) -> bool:
     return account_count == 0
 
 
-def seed_acme_corp(db: Session):
+def seed_acme_corp(db: Session, tenant: str = "acme_corp"):
     """
-    Seed data for acme_corp tenant.
+    Seed the acme_corp demo dataset.
     Accounts: Test Account 20 (id: 22214), Private Clients Fund TTXX (id: 11413)
     """
-    tenant = "acme_corp"
     logger.info("Seeding data for tenant: %s", tenant)
 
     # Accounts
@@ -131,12 +130,11 @@ def seed_acme_corp(db: Session):
     logger.info("Seeded acme_corp: 2 accounts, 8 trades, 7 positions")
 
 
-def seed_globex_inc(db: Session):
+def seed_globex_inc(db: Session, tenant: str = "globex_inc"):
     """
     Seed data for globex_inc tenant.
     Accounts: Algo Execution Partners (id: 42422), Big Corporate Fund (id: 52355)
     """
-    tenant = "globex_inc"
     logger.info("Seeding data for tenant: %s", tenant)
 
     # Accounts
@@ -203,14 +201,13 @@ def seed_globex_inc(db: Session):
     logger.info("Seeded globex_inc: 2 accounts, 5 trades, 5 positions")
 
 
-def seed_initech(db: Session):
+def seed_initech(db: Session, tenant: str = "initech"):
     """
     Seed data for initech tenant.
     Accounts: Hedge Fund TXY1 (id: 62654), Internal Trading Book (id: 10031),
               Trading Account 1 (id: 44044)
     Multiple account users.
     """
-    tenant = "initech"
     logger.info("Seeding data for tenant: %s", tenant)
 
     # Accounts
@@ -301,10 +298,19 @@ def seed_initech(db: Session):
     logger.info("Seeded initech: 3 accounts, 8 trades, 7 positions")
 
 
+# Demo datasets keyed by the tenant they were authored for. A tenant without its
+# own dataset gets the acme_corp shape seeded under its own tenant id.
+DEMO_DATASETS = {
+    "acme_corp": seed_acme_corp,
+    "globex_inc": seed_globex_inc,
+    "initech": seed_initech,
+}
+
+
 def seed_database():
     """
-    Main seed function. Populates the database with sample data
-    distributed across 3 tenants. Only runs if the database is empty.
+    Main seed function. Populates this instance's tenant database with its
+    sample data. Only runs if the database is empty.
     """
     db = SessionLocal()
     try:
@@ -313,22 +319,15 @@ def seed_database():
             return False
 
         logger.info("=" * 60)
-        logger.info("SEEDING DATABASE")
+        logger.info("SEEDING DATABASE FOR TENANT: %s", TENANT_ID)
         logger.info("=" * 60)
 
-        seed_acme_corp(db)
-        seed_globex_inc(db)
-        seed_initech(db)
+        seed_tenant = DEMO_DATASETS.get(TENANT_ID, seed_acme_corp)
+        seed_tenant(db, TENANT_ID)
 
         db.commit()
 
-        logger.info("=" * 60)
-        logger.info("DATABASE SEEDING COMPLETE")
-        logger.info("  Tenants: acme_corp, globex_inc, initech")
-        logger.info("  Total accounts: 7")
-        logger.info("  Total trades: 21")
-        logger.info("  Total positions: 19")
-        logger.info("=" * 60)
+        logger.info("DATABASE SEEDING COMPLETE for tenant %s", TENANT_ID)
 
         return True
 

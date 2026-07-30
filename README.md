@@ -1,6 +1,9 @@
-# TraderX — Legacy Trading Platform
+# TraderX — Single-Tenant Trading Platform
 
-A multi-tenant trading platform built as a Python/FastAPI monolith. Supports account management, trade submission, position tracking, and real-time updates via Socket.io. Uses SQLite for storage with 3 demo tenants (`acme_corp`, `globex_inc`, `initech`).
+A trading platform decomposed into five single-tenant domain services (Python/FastAPI/SQLAlchemy)
+with a React frontend. Every instance serves exactly one tenant, fixed at startup via `TENANT_ID`,
+with its own database. The original monolith remains in [`traderx-monolith/`](traderx-monolith/)
+as the deprecated legacy reference.
 
 [![CI](https://github.com/mbatchelor81/traderXCognitiondemos/actions/workflows/ci.yml/badge.svg)](https://github.com/mbatchelor81/traderXCognitiondemos/actions/workflows/ci.yml)
 
@@ -14,89 +17,76 @@ A multi-tenant trading platform built as a Python/FastAPI monolith. Supports acc
 
 ---
 
+## Services
+
+| Service | Port | Owns | Depends on (HTTP) |
+|---|---|---|---|
+| [`account-service`](services/account-service) | 8001 | Accounts, account users, validation | position-service, people-service |
+| [`trading-service`](services/trading-service) | 8002 | Trades, state machine, analytics, Socket.io feed | account-service, reference-data-service, position-service |
+| [`position-service`](services/position-service) | 8003 | Positions, recalculation | — |
+| [`reference-data-service`](services/reference-data-service) | 8004 | S&P 500 ticker lookup | — |
+| [`people-service`](services/people-service) | 8005 | Person directory and validation | — |
+
+Each service requires `TENANT_ID`, exposes `GET /health` →
+`{"status": "UP", "service": "<name>", "tenant": "<TENANT_ID>"}`, serves its OpenAPI spec at
+`/openapi.json` and `/docs`, and emits structured JSON logs.
+
+---
+
 ## Quick Start
 
-### 1. Start the backend
+### 1. Start the services
 
 ```bash
-cd traderx-monolith
-pip install -r requirements.txt
-python run.py
+for svc in account-service trading-service position-service reference-data-service people-service; do
+  (cd services/$svc && pip install -r requirements.txt && TENANT_ID=acme_corp python run.py &)
+done
 ```
-
-The API will be available at `http://localhost:8000`.
 
 ### 2. Start the frontend
 
 ```bash
 cd web-front-end/react
 npm install
-npm start
+REACT_APP_TENANT_ID=acme_corp npm start
 ```
 
-The UI will be available at `http://localhost:3000`.
+The UI will be available at `http://localhost:3000`. The tenant is a **build-time** constant —
+rebuild to serve a different tenant.
 
-### 3. Open the app
-
-Navigate to [http://localhost:3000](http://localhost:3000) in your browser.
-
----
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/account/` | List all accounts for the current tenant |
-| `POST` | `/account/` | Create a new account |
-| `PUT` | `/account/` | Update an existing account |
-| `GET` | `/account/{account_id}` | Get account by ID with portfolio summary |
-| `GET` | `/accountuser/` | List all account users |
-| `POST` | `/accountuser/` | Create a new account user |
-| `PUT` | `/accountuser/` | Update an account user |
-| `POST` | `/trade/` | Submit a new trade order |
-| `GET` | `/trades/` | List all trades for the current tenant |
-| `GET` | `/trades/{account_id}` | List trades for a specific account |
-| `GET` | `/positions/` | List all positions for the current tenant |
-| `GET` | `/positions/{account_id}` | List positions for a specific account |
-| `GET` | `/stocks/` | List all S&P 500 stocks |
-| `GET` | `/stocks/{ticker}` | Get stock by ticker symbol |
-| `GET` | `/people/GetPerson` | Get a person by LogonId or EmployeeId |
-| `GET` | `/people/GetMatchingPeople` | Search for people matching text |
-| `GET` | `/people/ValidatePerson` | Validate that a person exists |
-| `GET` | `/health` | Health check |
-
----
-
-## Multi-Tenant
-
-TraderX supports multiple tenants via the `X-Tenant-ID` HTTP header. If the header is not provided, the default tenant (`acme_corp`) is used.
-
-### Available Tenants
-
-| Tenant ID | Description |
-|---|---|
-| `acme_corp` | 2 accounts, 8 trades, 7 positions |
-| `globex_inc` | 2 accounts, 5 trades, 5 positions |
-| `initech` | 3 accounts, 8 trades, 7 positions |
-
-### Example
+### 3. Run the cross-service integration test
 
 ```bash
-# List accounts for the default tenant (acme_corp)
-curl http://localhost:8000/account/
-
-# List accounts for a specific tenant
-curl -H "X-Tenant-ID: globex_inc" http://localhost:8000/account/
+TENANT_ID=test_tenant python tests/integration/test_cross_service.py
 ```
+
+---
+
+## Configuration
+
+| Variable | Applies to | Default | Description |
+|---|---|---|---|
+| `TENANT_ID` | every service | — (**required**, fails fast) | The single tenant this instance serves |
+| `DATABASE_URL` | services with a database | `sqlite:///<domain>_<TENANT_ID>.db` | Tenant-specific database |
+| `PORT` / `HOST` | every service | service port / `0.0.0.0` | Listen address |
+| `ACCOUNT_SERVICE_URL` | trading-service | `http://localhost:8001` | Peer service URL |
+| `TRADING_SERVICE_URL` | frontend | `http://localhost:8002` | Peer service URL |
+| `POSITION_SERVICE_URL` | account-service, trading-service | `http://localhost:8003` | Peer service URL |
+| `REFERENCE_DATA_SERVICE_URL` | trading-service | `http://localhost:8004` | Peer service URL |
+| `PEOPLE_SERVICE_URL` | account-service | `http://localhost:8005` | Peer service URL |
+| `REACT_APP_TENANT_ID` | frontend | — (**required at build time**) | Tenant baked into the bundle |
+
+A request carrying an `X-Tenant-ID` header that names a different tenant is rejected with `403`.
 
 ---
 
 ## Architecture
 
-This is a legacy monolithic application with known technical debt. See the following documents for details:
-
-- **[LEGACY_ARCHITECTURE.md](LEGACY_ARCHITECTURE.md)** — Current system architecture, database schema, module coupling, and known anti-patterns
-- **[TARGET_ARCHITECTURE_CONSTRAINTS.md](TARGET_ARCHITECTURE_CONSTRAINTS.md)** — Target state requirements and constraints for a future migration to microservices
+- **[TARGET_ARCHITECTURE_CONSTRAINTS.md](TARGET_ARCHITECTURE_CONSTRAINTS.md)** — the authority for the target state
+- **[migration/MIGRATION_PLAN.md](migration/MIGRATION_PLAN.md)** — current → target migration, service boundaries, URL mapping
+- **[migration/DEFINITION_OF_DONE.md](migration/DEFINITION_OF_DONE.md)** — migration checklist (Process A done, Process B pending)
+- **[LEGACY_ARCHITECTURE.md](LEGACY_ARCHITECTURE.md)** — the legacy monolith's architecture and anti-patterns
+- **[traderx-monolith/](traderx-monolith/)** — deprecated legacy reference implementation
 
 ---
 
