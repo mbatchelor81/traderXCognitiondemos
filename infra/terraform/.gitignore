@@ -1,0 +1,13 @@
+# Local Terraform working directory and state — never commit these.
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+*.tfvars
+!example.tfvars
+.terraformrc
+terraform.rc
