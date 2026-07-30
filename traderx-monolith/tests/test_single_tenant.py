@@ -33,6 +33,25 @@ def test_request_with_mismatched_tenant_header_is_rejected(client):
     assert TEST_TENANT_ID in resp.json()["detail"]
 
 
+def test_database_url_is_tenant_specific():
+    script = "import app.config as c; print(c.DATABASE_URL)"
+    cwd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    def database_url_for(tenant):
+        env = {**os.environ, "TENANT_ID": tenant}
+        env.pop("DATABASE_URL", None)
+        return subprocess.run(
+            [sys.executable, "-c", script], cwd=cwd, env=env,
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+
+    url_a = database_url_for("tenant_a")
+    url_b = database_url_for("tenant_b")
+    assert url_a == "sqlite:///traderx_tenant_a.db"
+    assert url_b == "sqlite:///traderx_tenant_b.db"
+    assert url_a != url_b
+
+
 def test_app_fails_fast_without_tenant_id():
     env = {k: v for k, v in os.environ.items() if k != "TENANT_ID"}
     result = subprocess.run(

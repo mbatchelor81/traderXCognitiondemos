@@ -18,9 +18,11 @@ if not TENANT_ID:
     )
 
 # =============================================================================
-# Database Configuration
+# Database Configuration (one database per tenant)
 # =============================================================================
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///traderx.db")
+# DATABASE_URL is overridable so production can point at a tenant-specific
+# managed database; the default keeps each tenant in its own SQLite file.
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///traderx_{TENANT_ID}.db")
 DATABASE_ECHO = os.getenv("DATABASE_ECHO", "false").lower() == "true"
 
 # =============================================================================
