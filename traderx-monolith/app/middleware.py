@@ -1,19 +1,31 @@
 """
-Tenant injection middleware for TraderX Monolith.
-Injects tenant_id from X-Tenant-ID header, falls back to env var.
+Tenant enforcement middleware for TraderX.
+Every request is served for the startup TENANT_ID; a request that names a
+different tenant is rejected.
 """
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from app.config import *  # noqa: F401,F403 — intentional global config import
 
 
 class TenantMiddleware(BaseHTTPMiddleware):
-    """Injects tenant_id from X-Tenant-ID header, falls back to env var."""
+    """Pins every request to the startup tenant and rejects mismatched tenants."""
 
     async def dispatch(self, request: Request, call_next):
-        tenant_id = request.headers.get("X-Tenant-ID", CURRENT_TENANT)
-        request.state.tenant_id = tenant_id
-        response = await call_next(request)
-        return response
+        requested_tenant = request.headers.get("X-Tenant-ID")
+        if requested_tenant and requested_tenant != TENANT_ID:
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "detail": (
+                        f"This instance serves tenant '{TENANT_ID}' only; "
+                        f"'{requested_tenant}' was requested."
+                    )
+                },
+            )
+
+        request.state.tenant_id = TENANT_ID
+        return await call_next(request)

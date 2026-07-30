@@ -21,7 +21,6 @@ import { CreateAccount, CreateAccountUser, CreateTradeButton } from '../ActionBu
 import { ColDef, ICellRendererParams } from 'ag-grid-community';
 import { PositionData, TradeData } from './types';
 import { AccountsDropdown } from '../AccountsDropdown';
-import { useTenant } from '../TenantContext';
 
 const PUBLISH = 'publish';
 const SUBSCRIBE = 'subscribe';
@@ -107,7 +106,6 @@ const StatCard = ({ title, value, icon, color }: StatCardProps) => (
 );
 
 export const Datatable = () => {
-	const { tenant } = useTenant();
 	const [tradeRowData, setTradeRowData] = useState<TradeData[]>([]);
 	const [positionRowData, setPositionRowData] = useState<PositionData[]>([]);
 	const [selectedId, setSelectedId] = useState<number>(0);
@@ -115,14 +113,6 @@ export const Datatable = () => {
 
 	const positionData = GetPositions(selectedId);
 	const tradeData = GetTrades(selectedId);
-
-	// Reset selection when tenant changes
-	useEffect(() => {
-		setSelectedId(0);
-		setCurrentAccount('');
-		setTradeRowData([]);
-		setPositionRowData([]);
-	}, [tenant]);
 
 	const tradeColumnDefs = useMemo<ColDef<TradeData>[]>(() => [
 		{ field: 'security', headerName: 'Security', flex: 1, minWidth: 100 },

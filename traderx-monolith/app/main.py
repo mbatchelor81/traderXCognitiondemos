@@ -34,6 +34,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+logger.info("TraderX starting in single-tenant mode for tenant '%s'", TENANT_ID)
+
 # =============================================================================
 # Socket.io Server
 # =============================================================================
@@ -116,11 +118,12 @@ def create_app() -> FastAPI:
             "service": APP_TITLE,
             "version": APP_VERSION,
             "status": "running",
+            "tenant": TENANT_ID,
         }
 
     @app.get("/health")
     def health():
-        return {"status": "UP"}
+        return {"status": "UP", "service": APP_TITLE, "tenant": TENANT_ID}
 
     @app.get("/sentry-debug")
     async def trigger_error():

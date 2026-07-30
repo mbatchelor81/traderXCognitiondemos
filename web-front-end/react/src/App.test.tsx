@@ -5,24 +5,21 @@ import CssBaseline from '@mui/material/CssBaseline';
 import App from './App';
 import theme from './theme';
 
-test('renders TraderX header', () => {
+const renderApp = () =>
   render(
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <App />
     </ThemeProvider>
   );
+
+test('renders TraderX header', () => {
+  renderApp();
   const headerElement = screen.getByText(/TraderX/i);
   expect(headerElement).toBeInTheDocument();
 });
 
-test('renders tenant selector', () => {
-  render(
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <App />
-    </ThemeProvider>
-  );
-  const tenantLabel = screen.getByText(/TENANT/i);
-  expect(tenantLabel).toBeInTheDocument();
+test('renders the build-time tenant name', () => {
+  renderApp();
+  expect(screen.getByTestId('tenant-name')).toHaveTextContent('Test Tenant');
 });

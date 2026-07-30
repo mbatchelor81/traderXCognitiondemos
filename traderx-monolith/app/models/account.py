@@ -12,7 +12,7 @@ class Account(Base):
     __tablename__ = "accounts"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column(String(50), nullable=False, default=DEFAULT_TENANT)
+    tenant_id = Column(String(50), nullable=False, default=TENANT_ID)
     display_name = Column(String(50), nullable=True)
 
     def to_dict(self):
@@ -27,7 +27,7 @@ class AccountUser(Base):
     __tablename__ = "account_users"
 
     account_id = Column(Integer, ForeignKey("accounts.id"), primary_key=True)
-    tenant_id = Column(String(50), primary_key=True, default=DEFAULT_TENANT)
+    tenant_id = Column(String(50), primary_key=True, default=TENANT_ID)
     username = Column(String(100), primary_key=True)
 
     def to_dict(self):

@@ -14,7 +14,7 @@ class Trade(Base):
     __tablename__ = "trades"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column(String(50), nullable=False, default=DEFAULT_TENANT)
+    tenant_id = Column(String(50), nullable=False, default=TENANT_ID)
     account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)
     security = Column(String(50), nullable=False)
     side = Column(String(4), nullable=False)  # Buy or Sell

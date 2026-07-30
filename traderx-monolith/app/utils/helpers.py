@@ -140,13 +140,13 @@ def validate_trade_state(state: str) -> bool:
 # =============================================================================
 
 def get_tenant_from_request(request) -> str:
-    """Extract tenant_id from request state (set by middleware)."""
-    return getattr(request.state, "tenant_id", DEFAULT_TENANT)
+    """Return the tenant this instance serves."""
+    return getattr(request.state, "tenant_id", TENANT_ID)
 
 
 def is_valid_tenant(tenant_id: str) -> bool:
-    """Check if a tenant_id is known."""
-    return tenant_id in KNOWN_TENANTS
+    """Check whether a tenant_id is the tenant this instance serves."""
+    return tenant_id == TENANT_ID
 
 
 # =============================================================================
