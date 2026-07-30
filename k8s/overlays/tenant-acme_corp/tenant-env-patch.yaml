@@ -1,0 +1,8 @@
+# Applied to every backend Deployment. A JSON patch is used so a single file can
+# target all five workloads; a strategic merge would need the per-service
+# container name. TENANT_ID is always the first env entry of the sole container.
+- op: replace
+  path: /spec/template/spec/containers/0/env/0
+  value:
+    name: TENANT_ID
+    value: acme_corp

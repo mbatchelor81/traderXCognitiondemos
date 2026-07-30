@@ -1,0 +1,12 @@
+# Tenant business rules read by trading-service/app/config.py.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trading-service-config
+data:
+  TENANT_ID: "acme_corp"
+  LOG_LEVEL: "INFO"
+  MAX_ACCOUNTS: "50"
+  ALLOWED_SIDES: "Buy,Sell"
+  AUTO_SETTLE: "true"
+  AUDIT_ENABLED: "true"

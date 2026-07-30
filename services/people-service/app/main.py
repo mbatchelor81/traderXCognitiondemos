@@ -29,6 +29,7 @@ from app.middleware import (
     RequestTimingMiddleware,
     TenantMiddleware,
 )
+from app.observability import configure_tracing, register_observability
 from app.routes import people
 from app.services import people_service
 
@@ -100,6 +101,9 @@ def create_app() -> FastAPI:
     @app.get("/health", response_model=HealthResponse, summary="Health check")
     def health() -> HealthResponse:
         return HealthResponse(status="UP", service=SERVICE_NAME, tenant=TENANT_ID)
+
+    register_observability(app, health_endpoint=health)
+    configure_tracing(app)
 
     logger.info("app_created", extra={"tenant_id": TENANT_ID})
     return app

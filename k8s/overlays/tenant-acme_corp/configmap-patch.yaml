@@ -1,0 +1,6 @@
+- op: add
+  path: /data/TENANT_ID
+  value: acme_corp
+- op: replace
+  path: /data/LOG_LEVEL
+  value: INFO

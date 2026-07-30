@@ -1,0 +1,5 @@
+# Renames the base namespace resource to the tenant namespace. DNS-1123 label,
+# so the underscore in the tenant id becomes a hyphen.
+- op: replace
+  path: /metadata/name
+  value: traderx-acme-corp

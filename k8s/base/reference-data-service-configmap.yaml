@@ -1,0 +1,21 @@
+# Generated as part of the TraderX Kubernetes base. Tenant overlays patch
+# tenant-specific values (namespace, TENANT_ID, config).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reference-data-service-config
+  labels:
+    app: reference-data-service
+    app.kubernetes.io/name: reference-data-service
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: traderx
+data:
+  SERVICE_NAME: "reference-data-service"
+  PORT: "8004"
+  LOG_LEVEL: "INFO"
+  HOST: "0.0.0.0"
+  ACCOUNT_SERVICE_URL: "http://account-service:8001"
+  TRADING_SERVICE_URL: "http://trading-service:8002"
+  POSITION_SERVICE_URL: "http://position-service:8003"
+  REFERENCE_DATA_SERVICE_URL: "http://reference-data-service:8004"
+  PEOPLE_SERVICE_URL: "http://people-service:8005"

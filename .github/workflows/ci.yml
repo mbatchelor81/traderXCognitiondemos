@@ -1,0 +1,282 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - feature/single-tenant-migration
+      - feature/process-b-infrastructure
+  pull_request:
+    branches:
+      - main
+      - feature/single-tenant-migration
+  workflow_dispatch:
+
+env:
+  TENANT_ID: test_tenant
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '20'
+  # Pinned: ruff widens its default rule set between minor releases, so an
+  # unpinned install makes `ruff check` non-deterministic across runs.
+  RUFF_VERSION: '0.8.6'
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - account-service
+          - trading-service
+          - position-service
+          - reference-data-service
+          - people-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: services/${{ matrix.service }}/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r services/${{ matrix.service }}/requirements.txt "ruff==${RUFF_VERSION}"
+
+      - name: ruff check
+        run: ruff check services/${{ matrix.service }}
+
+      # Non-blocking: the extracted services are not ruff-formatted yet
+      # (`ruff format --check` currently reports reformats in every service),
+      # so this reports drift without failing the migration pipeline.
+      - name: ruff format --check
+        continue-on-error: true
+        run: ruff format --check services/${{ matrix.service }}
+
+  lint-frontend:
+    name: Lint web-frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web-front-end/react
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: web-front-end/react/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: eslint
+        run: npm run lint
+
+  test:
+    name: Test ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - account-service
+          - trading-service
+          - position-service
+          - reference-data-service
+          - people-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: services/${{ matrix.service }}/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r services/${{ matrix.service }}/requirements.txt pytest pytest-cov
+
+      - name: pytest
+        working-directory: services/${{ matrix.service }}
+        env:
+          TENANT_ID: test_tenant
+        run: python -m pytest tests/ -v --cov=app --cov-report=xml --cov-report=term
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.service }}
+          path: services/${{ matrix.service }}/coverage.xml
+          if-no-files-found: warn
+          retention-days: 7
+
+  test-frontend:
+    name: Test web-frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web-front-end/react
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: web-front-end/react/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: jest
+        env:
+          CI: true
+          REACT_APP_TENANT_ID: test_tenant
+        run: npm test -- --watchAll=false
+
+  security-scan-trivy:
+    name: Trivy ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: account-service
+            context: services/account-service
+          - name: trading-service
+            context: services/trading-service
+          - name: position-service
+            context: services/position-service
+          - name: reference-data-service
+            context: services/reference-data-service
+          - name: people-service
+            context: services/people-service
+          - name: web-frontend
+            context: web-front-end/react
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image for scanning
+        run: |
+          if [ "${{ matrix.name }}" = "web-frontend" ]; then
+            docker build \
+              --build-arg REACT_APP_TENANT_ID=acme_corp \
+              -t "traderx-${{ matrix.name }}:${{ github.sha }}" \
+              "${{ matrix.context }}"
+          else
+            docker build \
+              -t "traderx-${{ matrix.name }}:${{ github.sha }}" \
+              "${{ matrix.context }}"
+          fi
+
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: traderx-${{ matrix.name }}:${{ github.sha }}
+          format: sarif
+          output: trivy-${{ matrix.name }}.sarif
+          severity: CRITICAL,HIGH
+          # Report only — a CVE in a base image must not block the migration demo.
+          exit-code: '0'
+          ignore-unfixed: true
+
+      - name: Upload Trivy SARIF
+        if: always()
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-${{ matrix.name }}.sarif
+          category: trivy-${{ matrix.name }}
+
+  security-scan-codeql:
+    name: CodeQL ${{ matrix.language }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - python
+          - javascript-typescript
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          config-file: ./.github/codeql/codeql-config.yml
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:${{ matrix.language }}
+
+  docker-build:
+    name: Docker build ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - lint-frontend
+      - test
+      - test-frontend
+      - security-scan-trivy
+      - security-scan-codeql
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: account-service
+            context: services/account-service
+            build-args: ''
+          - name: trading-service
+            context: services/trading-service
+            build-args: ''
+          - name: position-service
+            context: services/position-service
+            build-args: ''
+          - name: reference-data-service
+            context: services/reference-data-service
+            build-args: ''
+          - name: people-service
+            context: services/people-service
+            build-args: ''
+          - name: web-frontend
+            context: web-front-end/react
+            build-args: REACT_APP_TENANT_ID=acme_corp
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/Dockerfile
+          push: false
+          load: false
+          tags: traderx-${{ matrix.name }}:${{ github.sha }}
+          build-args: ${{ matrix.build-args }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

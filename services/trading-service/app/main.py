@@ -32,6 +32,7 @@ from app.middleware import (
     RequestTimingMiddleware,
     TenantMiddleware,
 )
+from app.observability import configure_tracing, register_observability
 from app.routes import analytics, trades
 from app.services.trade_processor import set_socketio_server
 
@@ -162,6 +163,9 @@ def create_app() -> FastAPI:
                 },
             )
         return HealthResponse(status="UP", service=SERVICE_NAME, tenant=TENANT_ID)
+
+    register_observability(app, health_endpoint=health)
+    configure_tracing(app)
 
     return app
 

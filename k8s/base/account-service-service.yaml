@@ -1,0 +1,20 @@
+# Generated as part of the TraderX Kubernetes base. Tenant overlays patch
+# tenant-specific values (namespace, TENANT_ID, config).
+apiVersion: v1
+kind: Service
+metadata:
+  name: account-service
+  labels:
+    app: account-service
+    app.kubernetes.io/name: account-service
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: traderx
+spec:
+  type: ClusterIP
+  selector:
+    app: account-service
+  ports:
+    - name: http
+      port: 8001
+      targetPort: 8001
+      protocol: TCP

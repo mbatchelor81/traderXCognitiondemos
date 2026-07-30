@@ -1,0 +1,130 @@
+# Generated as part of the TraderX Kubernetes base. Tenant overlays patch
+# tenant-specific values (namespace, TENANT_ID, config).
+# ALB evaluates rules in order: the "/" catch-all to the frontend must stay last.
+# There is deliberately no bare /health rule -- it is ambiguous across services;
+# use the per-service /svc/<slug>/health aliases instead.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: traderx
+  labels:
+    app.kubernetes.io/name: traderx
+    app.kubernetes.io/part-of: traderx
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
+    alb.ingress.kubernetes.io/success-codes: "200"
+    alb.ingress.kubernetes.io/group.name: traderx
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /account
+            pathType: Prefix
+            backend:
+              service:
+                name: account-service
+                port:
+                  number: 8001
+          - path: /accountuser
+            pathType: Prefix
+            backend:
+              service:
+                name: account-service
+                port:
+                  number: 8001
+          - path: /trade
+            pathType: Prefix
+            backend:
+              service:
+                name: trading-service
+                port:
+                  number: 8002
+          - path: /trades
+            pathType: Prefix
+            backend:
+              service:
+                name: trading-service
+                port:
+                  number: 8002
+          - path: /analytics
+            pathType: Prefix
+            backend:
+              service:
+                name: trading-service
+                port:
+                  number: 8002
+          - path: /socket.io
+            pathType: Prefix
+            backend:
+              service:
+                name: trading-service
+                port:
+                  number: 8002
+          - path: /positions
+            pathType: Prefix
+            backend:
+              service:
+                name: position-service
+                port:
+                  number: 8003
+          - path: /stocks
+            pathType: Prefix
+            backend:
+              service:
+                name: reference-data-service
+                port:
+                  number: 8004
+          - path: /people
+            pathType: Prefix
+            backend:
+              service:
+                name: people-service
+                port:
+                  number: 8005
+          - path: /svc/account
+            pathType: Prefix
+            backend:
+              service:
+                name: account-service
+                port:
+                  number: 8001
+          - path: /svc/trading
+            pathType: Prefix
+            backend:
+              service:
+                name: trading-service
+                port:
+                  number: 8002
+          - path: /svc/position
+            pathType: Prefix
+            backend:
+              service:
+                name: position-service
+                port:
+                  number: 8003
+          - path: /svc/reference-data
+            pathType: Prefix
+            backend:
+              service:
+                name: reference-data-service
+                port:
+                  number: 8004
+          - path: /svc/people
+            pathType: Prefix
+            backend:
+              service:
+                name: people-service
+                port:
+                  number: 8005
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web-frontend
+                port:
+                  number: 8080

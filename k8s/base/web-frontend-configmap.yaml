@@ -1,0 +1,16 @@
+# Generated as part of the TraderX Kubernetes base. Tenant overlays patch
+# tenant-specific values (namespace, TENANT_ID, config).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-frontend-config
+  labels:
+    app: web-frontend
+    app.kubernetes.io/name: web-frontend
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: traderx
+data:
+  SERVICE_NAME: "web-frontend"
+  PORT: "8080"
+  LOG_LEVEL: "INFO"
+  API_BASE_URL: "/"

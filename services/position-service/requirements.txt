@@ -4,3 +4,10 @@ sqlalchemy
 pydantic
 pytest
 httpx
+
+# Observability (TARGET_ARCHITECTURE_CONSTRAINTS.md §10)
+prometheus-client==0.25.0
+opentelemetry-sdk==1.44.0
+opentelemetry-exporter-otlp-proto-http==1.44.0
+opentelemetry-instrumentation-fastapi==0.65b0
+opentelemetry-instrumentation-httpx==0.65b0

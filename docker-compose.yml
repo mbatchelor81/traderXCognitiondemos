@@ -1,0 +1,114 @@
+# Local stack for a single tenant. Mirrors the EKS topology: five FastAPI
+# services, the React frontend, and one gateway in front of everything routing
+# by path prefix (nginx here, an ALB Ingress in the cluster).
+#
+#   TENANT_ID=acme_corp docker compose up --build -d
+#   SMOKE_TEST_URL=http://localhost:8000 python -m pytest tests/smoke/ -v
+#   docker compose down
+
+x-tenant: &tenant ${TENANT_ID:-acme_corp}
+
+services:
+  account-service:
+    build: ./services/account-service
+    image: traderx-account-service:local
+    ports:
+      - "8001:8001"
+    environment:
+      TENANT_ID: *tenant
+      PORT: "8001"
+      LOG_LEVEL: INFO
+      POSITION_SERVICE_URL: http://position-service:8003
+      PEOPLE_SERVICE_URL: http://people-service:8005
+    depends_on:
+      position-service:
+        condition: service_healthy
+      people-service:
+        condition: service_healthy
+
+  trading-service:
+    build: ./services/trading-service
+    image: traderx-trading-service:local
+    ports:
+      - "8002:8002"
+    environment:
+      TENANT_ID: *tenant
+      PORT: "8002"
+      LOG_LEVEL: INFO
+      ACCOUNT_SERVICE_URL: http://account-service:8001
+      REFERENCE_DATA_SERVICE_URL: http://reference-data-service:8004
+      POSITION_SERVICE_URL: http://position-service:8003
+    depends_on:
+      account-service:
+        condition: service_healthy
+      reference-data-service:
+        condition: service_healthy
+      position-service:
+        condition: service_healthy
+
+  position-service:
+    build: ./services/position-service
+    image: traderx-position-service:local
+    ports:
+      - "8003:8003"
+    environment:
+      TENANT_ID: *tenant
+      PORT: "8003"
+      LOG_LEVEL: INFO
+
+  reference-data-service:
+    build: ./services/reference-data-service
+    image: traderx-reference-data-service:local
+    ports:
+      - "8004:8004"
+    environment:
+      TENANT_ID: *tenant
+      PORT: "8004"
+      LOG_LEVEL: INFO
+
+  people-service:
+    build: ./services/people-service
+    image: traderx-people-service:local
+    ports:
+      - "8005:8005"
+    environment:
+      TENANT_ID: *tenant
+      PORT: "8005"
+      LOG_LEVEL: INFO
+
+  web-frontend:
+    build:
+      context: ./web-front-end/react
+      args:
+        # The tenant and the service URLs are baked into the bundle at build
+        # time. Every service is reachable through the gateway origin, so all
+        # five overrides point at the same host.
+        REACT_APP_TENANT_ID: *tenant
+        REACT_APP_ACCOUNT_SERVICE_URL: ${GATEWAY_URL:-http://localhost:8000}
+        REACT_APP_TRADING_SERVICE_URL: ${GATEWAY_URL:-http://localhost:8000}
+        REACT_APP_POSITION_SERVICE_URL: ${GATEWAY_URL:-http://localhost:8000}
+        REACT_APP_REFERENCE_DATA_SERVICE_URL: ${GATEWAY_URL:-http://localhost:8000}
+        REACT_APP_PEOPLE_SERVICE_URL: ${GATEWAY_URL:-http://localhost:8000}
+    image: traderx-web-frontend:local
+    ports:
+      - "8080:8080"
+
+  gateway:
+    image: nginx:1.27-alpine
+    ports:
+      - "8000:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      account-service:
+        condition: service_healthy
+      trading-service:
+        condition: service_healthy
+      position-service:
+        condition: service_healthy
+      reference-data-service:
+        condition: service_healthy
+      people-service:
+        condition: service_healthy
+      web-frontend:
+        condition: service_healthy
