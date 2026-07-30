@@ -25,8 +25,11 @@ def account(client) -> int:
     return response.json()["id"]
 
 
-def test_reference_data_lists_securities(client):
-    response = client.get("/stocks/")
+@pytest.mark.parametrize("path", ["/stocks/", "/stocks"])
+def test_reference_data_lists_securities(client, path):
+    """Both spellings must work: the frontend omits the trailing slash, so the
+    gateway has to preserve the port when FastAPI redirects to add it back."""
+    response = client.get(path)
 
     assert response.status_code == 200, response.text
     tickers = response.json()
