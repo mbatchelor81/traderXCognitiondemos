@@ -1,0 +1,75 @@
+# Generated as part of the TraderX Kubernetes base. Tenant overlays patch
+# tenant-specific values (namespace, TENANT_ID, config).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reference-data-service
+  labels:
+    app: reference-data-service
+    app.kubernetes.io/name: reference-data-service
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: traderx
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: reference-data-service
+  template:
+    metadata:
+      labels:
+        app: reference-data-service
+        app.kubernetes.io/name: reference-data-service
+        app.kubernetes.io/component: backend
+        app.kubernetes.io/part-of: traderx
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: reference-data-service
+          image: traderx-reference-data-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8004
+              protocol: TCP
+          env:
+            - name: TENANT_ID
+              value: "PLACEHOLDER"
+            - name: PORT
+              value: "8004"
+          envFrom:
+            - configMapRef:
+                name: reference-data-service-config
+            - secretRef:
+                name: reference-data-service-secret
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL

@@ -1,0 +1,20 @@
+# Generated as part of the TraderX Kubernetes base. Tenant overlays patch
+# tenant-specific values (namespace, TENANT_ID, config).
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-frontend
+  labels:
+    app: web-frontend
+    app.kubernetes.io/name: web-frontend
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: traderx
+spec:
+  type: ClusterIP
+  selector:
+    app: web-frontend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP

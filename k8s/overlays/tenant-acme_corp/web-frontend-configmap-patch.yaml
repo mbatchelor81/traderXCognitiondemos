@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-frontend-config
+data:
+  TENANT_ID: "acme_corp"
+  LOG_LEVEL: "INFO"

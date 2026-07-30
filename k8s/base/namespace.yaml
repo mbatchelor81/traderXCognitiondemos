@@ -1,0 +1,8 @@
+# Generated as part of the TraderX Kubernetes base. Tenant overlays patch
+# tenant-specific values (namespace, TENANT_ID, config).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: traderx
+  labels:
+    app.kubernetes.io/part-of: traderx

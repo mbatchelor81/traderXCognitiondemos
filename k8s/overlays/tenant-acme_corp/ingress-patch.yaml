@@ -1,0 +1,8 @@
+# Each tenant gets its own ALB group so tenants never share a load balancer.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: traderx
+  annotations:
+    alb.ingress.kubernetes.io/group.name: traderx-acme
+    alb.ingress.kubernetes.io/tags: tenant=acme_corp,app=traderx
