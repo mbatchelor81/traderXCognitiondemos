@@ -17,11 +17,17 @@ export const TENANT_ID: string = tenantId;
 
 const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
 
+const serviceUrl = (override: string | undefined, port: number) => override || `http://${host}:${port}`;
+
+/**
+ * Extracted domain service URLs. Defaults are the local service ports; Process B
+ * re-points these at the API gateway / ALB via the build-time overrides.
+ */
 export const Environment = {
-	trade_feed_url: `http://${host}:8000`,
-	account_service_url: `http://${host}:8000`,
-	trade_service_url: `http://${host}:8000`,
-	reference_data_url: `http://${host}:8000`,
-	people_service_url: `http://${host}:8000`,
-	position_service_url: `http://${host}:8000`,
+	account_service_url: serviceUrl(process.env.REACT_APP_ACCOUNT_SERVICE_URL, 8001),
+	trade_service_url: serviceUrl(process.env.REACT_APP_TRADING_SERVICE_URL, 8002),
+	trade_feed_url: serviceUrl(process.env.REACT_APP_TRADING_SERVICE_URL, 8002),
+	position_service_url: serviceUrl(process.env.REACT_APP_POSITION_SERVICE_URL, 8003),
+	reference_data_url: serviceUrl(process.env.REACT_APP_REFERENCE_DATA_SERVICE_URL, 8004),
+	people_service_url: serviceUrl(process.env.REACT_APP_PEOPLE_SERVICE_URL, 8005),
 };
