@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Tenant overlay for tenant id "acme_corp".
+# K8s namespaces are DNS-1123 labels, so the underscore becomes a hyphen in the
+# namespace ("traderx-acme-corp") while the TENANT_ID *value* stays "acme_corp".
+namespace: traderx-acme-corp
+
+resources:
+  - ../../base
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: traderx
+      traderx.io/tenant: acme_corp
+
+patches:
+  - path: namespace-patch.yaml
+    target:
+      kind: Namespace
+      name: traderx
+  - path: tenant-env-patch.yaml
+    target:
+      kind: Deployment
+      labelSelector: app.kubernetes.io/component=backend
+  - path: configmap-patch.yaml
+    target:
+      kind: ConfigMap
+      name: (account-service|position-service|reference-data-service|people-service)-config
+  - path: trading-configmap-patch.yaml
+  - path: web-frontend-configmap-patch.yaml
+  - path: ingress-patch.yaml

@@ -1,0 +1,81 @@
+# Generated as part of the TraderX Kubernetes base. Tenant overlays patch
+# tenant-specific values (namespace, TENANT_ID, config).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trading-service
+  labels:
+    app: trading-service
+    app.kubernetes.io/name: trading-service
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: traderx
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: trading-service
+  template:
+    metadata:
+      labels:
+        app: trading-service
+        app.kubernetes.io/name: trading-service
+        app.kubernetes.io/component: backend
+        app.kubernetes.io/part-of: traderx
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: trading-service
+          image: traderx-trading-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8002
+              protocol: TCP
+          env:
+            - name: TENANT_ID
+              value: "PLACEHOLDER"
+            - name: PORT
+              value: "8002"
+            - name: ACCOUNT_SERVICE_URL
+              value: http://account-service:8001
+            - name: REFERENCE_DATA_SERVICE_URL
+              value: http://reference-data-service:8004
+            - name: POSITION_SERVICE_URL
+              value: http://position-service:8003
+          envFrom:
+            - configMapRef:
+                name: trading-service-config
+            - secretRef:
+                name: trading-service-secret
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
