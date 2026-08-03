@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "license": "Apache-2.0",
+  "overrides": {
+    "shell-quote": "1.10.0",
+    "websocket-driver": "0.7.5"
+  },
   "dependencies": {
     "@emotion/react": "^11.10.8",
     "@emotion/styled": "^11.10.8",
