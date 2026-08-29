@@ -18,6 +18,10 @@
     "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"
   },
+  "overrides": {
+    "websocket-driver": "^0.7.5",
+    "shell-quote": "^1.10.0"
+  },
   "scripts": {
     "start": "PORT=${WEB_SERVICE_REACT_PORT:-18094} react-scripts start",
     "build": "react-scripts build",
