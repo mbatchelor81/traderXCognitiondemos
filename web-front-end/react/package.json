@@ -44,6 +44,10 @@
       "last 1 safari version"
     ]
   },
+  "overrides": {
+    "shell-quote": "^1.8.5",
+    "websocket-driver": "^0.7.5"
+  },
   "devDependencies": {
     "react-scripts": "5.0.1",
     "@types/react": "^18.2.0",
