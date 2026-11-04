@@ -768,6 +768,8 @@ def cancel_stale_trades(db: Session, tenant_id: str,
                         max_age_hours: int = 24) -> int:
     """
     Cancel trades that have been in New/Processing state for too long.
+    Processing trades already had their position delta applied, so it is
+    reversed on cancellation.
     Returns the number of trades cancelled.
     """
     cutoff = datetime.utcnow() - timedelta(hours=max_age_hours)
@@ -780,7 +782,13 @@ def cancel_stale_trades(db: Session, tenant_id: str,
 
     cancelled_count = 0
     for trade in stale:
+        position_applied = trade.state == "Processing"
         if transition_trade_state(db, trade, "Cancelled"):
+            if position_applied:
+                reverse_delta = (-trade.quantity if trade.side == "Buy"
+                                 else trade.quantity)
+                update_position(db, trade.account_id, trade.security,
+                                reverse_delta, tenant_id)
             cancelled_count += 1
             log_trade_event(trade.id, trade.account_id,
                             "STALE_CANCELLED", tenant_id,
